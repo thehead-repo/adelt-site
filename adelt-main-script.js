@@ -390,14 +390,14 @@ function createThreeBlock(options) {
 createThreeBlock({
     containerId: 'three-container-1',
     rotationSpeed: 0.01,
-    modelUrl: 'https://thehead.digital/js/aw.glb',
+    modelUrl: 'https://cdn.jsdelivr.net/gh/thehead-repo/adelt-site@refs/heads/main/aw.glb',
     modelScale: 1.15,
 });
 
 createThreeBlock({
     containerId: 'three-container-2',
     rotationSpeed: 0.01,
-    modelUrl: 'https://thehead.digital/js/cs.glb',
+    modelUrl: 'https://cdn.jsdelivr.net/gh/thehead-repo/adelt-site@refs/heads/main/cs.glb',
     modelScale: 1.3,
 });
 
@@ -1488,5 +1488,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 });
+
 
 
