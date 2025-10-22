@@ -409,454 +409,468 @@ createThreeBlock({
 
 document.addEventListener('DOMContentLoaded', () => {
 
-    // ================================
-    // === Определяем тач-устройство ===
-    // ================================
-    const isTouchDevice = () => {
-        const hasTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-        if ('matchMedia' in window) {
-            return window.matchMedia('(pointer: coarse)').matches;
-        }
-        return hasTouch;
-    };
-    const IS_MOBILE = isTouchDevice();
-    
-    // Минимальное смещение для регистрации свайпа
-    const SWIPE_THRESHOLD = 50; 
-    // Коэффициент сглаживания, настроенный для плавного перехода
-    const STEP_SMOOTHING = 0.07; 
+    // ================================
+    // === Определяем тач-устройство ===
+    // ================================
+    const isTouchDevice = () => {
+        const hasTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+        if ('matchMedia' in window) {
+            return window.matchMedia('(pointer: coarse)').matches;
+        }
+        return hasTouch;
+    };
+    const IS_MOBILE = isTouchDevice();
+    
+    // Минимальное смещение для регистрации свайпа
+    const SWIPE_THRESHOLD = 50; 
+    // Коэффициент сглаживания, настроенный для плавного перехода
+    const STEP_SMOOTHING = 0.07; 
 
 
-    function createThreeWave(wrapperSelector, containerSelector, options = {}) {
-        const wrapper = document.querySelector(wrapperSelector);
-        const container = document.querySelector(containerSelector);
-        if (!wrapper || !container) return null;
+    function createThreeWave(wrapperSelector, containerSelector, options = {}) {
+        const wrapper = document.querySelector(wrapperSelector);
+        const container = document.querySelector(containerSelector);
+        if (!wrapper || !container) return null;
 
-        const isVertical = options.direction === 'vertical';
+        const isVertical = options.direction === 'vertical';
 
-        // === 1. Количество делений для мобилки ===
-        let numLines = options.numLines ?? 100;
-        const numLinesMobile = options.numLinesMobile ?? numLines;
+        // === 1. Количество делений для мобилки ===
+        let numLines = options.numLines ?? 100;
+        const numLinesMobile = options.numLinesMobile ?? numLines;
 
-        if (IS_MOBILE) {
-            numLines = numLinesMobile;
-        }
-        // =========================================================
+        if (IS_MOBILE) {
+            numLines = numLinesMobile;
+        }
+        // =========================================================
 
-        const baseColor = new THREE.Color(options.baseColor ?? '#8D8D8D');
-        let waveTargetColor = new THREE.Color(options.waveActiveColor ?? '#ff661a');
+        const baseColor = new THREE.Color(options.baseColor ?? '#8D8D8D');
+        let waveTargetColor = new THREE.Color(options.waveActiveColor ?? '#ff661a');
 
-        const baseRatio = options.baseRatio ?? 0.1;
-        const waveRatio = options.waveRatio ?? 0.4;
-        const smoothing = options.smoothing ?? 0.1;
-        const waveInfluenceRatio = options.waveInfluenceRatio ?? 0.05; 
-        const lineThickness = options.lineThickness ?? 1;
-        const centerSelector = options.centerSelector ? document.querySelector(options.centerSelector) : null;
+        const baseRatio = options.baseRatio ?? 0.1;
+        const waveRatio = options.waveRatio ?? 0.4;
+        const smoothing = options.smoothing ?? 0.1;
+        const waveInfluenceRatio = options.waveInfluenceRatio ?? 0.05; 
+        const lineThickness = options.lineThickness ?? 1;
+        const centerSelector = options.centerSelector ? document.querySelector(options.centerSelector) : null;
 
-        // === 2. Режимы движения волн на мобилке (Обновлено) ===
-        const isMobileSwipeStepMode = options.isMobileSwipeStepMode ?? false; 
-        const isScrollTrackMode = options.scrollTrackSelector && IS_MOBILE; 
-        const scrollTrackElement = isScrollTrackMode ? document.querySelector(options.scrollTrackSelector) : null;
+        // === 2. Режимы движения волн на мобилке (Обновлено) ===
+        const isMobileSwipeStepMode = options.isMobileSwipeStepMode ?? false; 
+        const isScrollTrackMode = options.scrollTrackSelector && IS_MOBILE; 
+        const scrollTrackElement = isScrollTrackMode ? document.querySelector(options.scrollTrackSelector) : null;
 
-        const isMobileSwipeMode = (options.isMobileSwipeMode ?? IS_MOBILE) && !isMobileSwipeStepMode && !isScrollTrackMode;
-        // ==========================================================
+        const isMobileSwipeMode = (options.isMobileSwipeMode ?? IS_MOBILE) && !isMobileSwipeStepMode && !isScrollTrackMode;
+        // ==========================================================
 
-        const swipeVelocity = options.swipeVelocity ?? 0.5;
-        const activeWavePosition = options.activeWavePosition ?? 0.5;
+        const swipeVelocity = options.swipeVelocity ?? 0.5;
+        const activeWavePosition = options.activeWavePosition ?? 0.5;
 
-        let width = container.offsetWidth;
-        let height = container.offsetHeight;
+        let width = container.offsetWidth;
+        let height = container.offsetHeight;
 
-        const scene = new THREE.Scene();
-        const camera = new THREE.OrthographicCamera(width / -2, width / 2, height / 2, height / -2, 1, 1000);
-        camera.position.z = 10;
+        const scene = new THREE.Scene();
+        const camera = new THREE.OrthographicCamera(width / -2, width / 2, height / 2, height / -2, 1, 1000);
+        camera.position.z = 10;
 
-        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-        renderer.setSize(width, height);
-        renderer.domElement.style.position = 'absolute';
-        renderer.domElement.style.top = 0;
-        renderer.domElement.style.left = 0;
-        renderer.domElement.style.width = '100%';
-        renderer.domElement.style.height = '100%';
-        renderer.domElement.style.zIndex = '0';
-        renderer.domElement.style.pointerEvents = 'none';
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        renderer.setSize(width, height);
+        renderer.domElement.style.position = 'absolute';
+        renderer.domElement.style.top = 0;
+        renderer.domElement.style.left = 0;
+        renderer.domElement.style.width = '100%';
+        renderer.domElement.style.height = '100%';
+        renderer.domElement.style.zIndex = '0';
+        renderer.domElement.style.pointerEvents = 'none';
 
-        if (getComputedStyle(container).position === 'static') {
-            container.style.position = 'relative';
-        }
-        container.prepend(renderer.domElement);
+        if (getComputedStyle(container).position === 'static') {
+            container.style.position = 'relative';
+        }
+        container.prepend(renderer.domElement);
 
-        const lines = [];
-        const totalLength = isVertical ? height : width;
-        const spacing = (totalLength - numLines * lineThickness) / (numLines - 1);
-        const segmentLength = lineThickness + spacing;
-        const totalLinesLength = numLines * segmentLength - spacing;
+        const lines = [];
+        const totalLength = isVertical ? height : width;
+        const spacing = (totalLength - numLines * lineThickness) / (numLines - 1);
+        const segmentLength = lineThickness + spacing;
+        const totalLinesLength = numLines * segmentLength - spacing;
 
-        const lineGroup = new THREE.Group();
-        for (let i = 0; i < numLines; i++) {
-            const geometry = new THREE.PlaneGeometry(
-                isVertical ? baseRatio * width : lineThickness,
-                isVertical ? lineThickness : baseRatio * height
-            );
-            const material = new THREE.MeshBasicMaterial({ color: baseColor });
-            const mesh = new THREE.Mesh(geometry, material);
+        const lineGroup = new THREE.Group();
+        for (let i = 0; i < numLines; i++) {
+            const geometry = new THREE.PlaneGeometry(
+                isVertical ? baseRatio * width : lineThickness,
+                isVertical ? lineThickness : baseRatio * height
+            );
+            const material = new THREE.MeshBasicMaterial({ color: baseColor });
+            const mesh = new THREE.Mesh(geometry, material);
 
-            const offset = i * segmentLength;
-            if (isVertical) {
-                mesh.userData.initialPos = offset - height / 2;
-                mesh.position.y = mesh.userData.initialPos;
-                mesh.position.x = -width / 2 + (baseRatio * width) / 2;
-            } else {
-                mesh.userData.initialPos = offset - width / 2;
-                mesh.position.x = mesh.userData.initialPos;
-                mesh.position.y = 0;
-            }
-            lineGroup.add(mesh);
-            lines.push(mesh);
-        }
-        scene.add(lineGroup);
+            const offset = i * segmentLength;
+            if (isVertical) {
+                mesh.userData.initialPos = offset - height / 2;
+                mesh.position.y = mesh.userData.initialPos;
+                mesh.position.x = -width / 2 + (baseRatio * width) / 2;
+            } else {
+                mesh.userData.initialPos = offset - width / 2;
+                mesh.position.x = mesh.userData.initialPos;
+                mesh.position.y = 0;
+            }
+            lineGroup.add(mesh);
+            lines.push(mesh);
+        }
+        scene.add(lineGroup);
 
-        let targetPos = isVertical ? height / 2 : width / 2;
-        let currentPos = targetPos;
-        let totalOffset = 0; 
-        let targetOffset = 0; // === НОВАЯ ПЕРЕМЕННАЯ: Целевое смещение для плавного шага ===
-        let activeWaveOffset = width * activeWavePosition; 
-        let velocity = 0;
-        let isTouching = false;
-        let lastTouchPos = 0;
-        let startTouchPos = 0; 
-        
-        // setTotalOffset больше не используется извне, но оставляем для обратной совместимости
-        const setTotalOffset = (newOffset) => {
-             targetOffset = newOffset; // Изменяем целевое смещение
-        };
+        let targetPos = isVertical ? height / 2 : width / 2;
+        let currentPos = targetPos;
+        let totalOffset = 0; 
+        let targetOffset = 0; // === НОВАЯ ПЕРЕМЕННАЯ: Целевое смещение для плавного шага ===
+        let activeWaveOffset = width * activeWavePosition; 
+        let velocity = 0;
+        let isTouching = false;
+        let lastTouchPos = 0;
+        let startTouchPos = 0; 
+        
+        // setTotalOffset больше не используется извне, но оставляем для обратной совместимости
+        const setTotalOffset = (newOffset) => {
+             targetOffset = newOffset; // Изменяем целевое смещение
+        };
 
-        // === Функция обновления волны (без изменений) ===
-        function updateWave(center) {
-            const influenceCenter = isMobileSwipeMode
-                ? (isVertical ? height : width) * activeWavePosition
-                : isMobileSwipeStepMode
-                    ? (isVertical ? height : width) * activeWavePosition 
-                    : isScrollTrackMode
-                        ? activeWaveOffset 
-                        : center; 
+        // === Функция обновления волны (без изменений) ===
+        function updateWave(center) {
+            const influenceCenter = isMobileSwipeMode
+                ? (isVertical ? height : width) * activeWavePosition
+                : isMobileSwipeStepMode
+                    ? (isVertical ? height : width) * activeWavePosition 
+                    : isScrollTrackMode
+                        ? activeWaveOffset 
+                        : center; 
 
-            lines.forEach(mesh => {
-                const pos = isVertical ? mesh.position.y + height / 2 : mesh.position.x + width / 2;
-                const dist = Math.abs(pos - influenceCenter);
-                const influence = Math.max(0, 1 - dist / (totalLength * waveInfluenceRatio)); 
-                const scale = baseRatio + (waveRatio - baseRatio) * influence;
+            lines.forEach(mesh => {
+                const pos = isVertical ? mesh.position.y + height / 2 : mesh.position.x + width / 2;
+                const dist = Math.abs(pos - influenceCenter);
+                const influence = Math.max(0, 1 - dist / (totalLength * waveInfluenceRatio)); 
+                const scale = baseRatio + (waveRatio - baseRatio) * influence;
 
-                if (isVertical) {
-                    mesh.scale.x += (scale / baseRatio - mesh.scale.x) * smoothing;
-                } else {
-                    mesh.scale.y += (scale / baseRatio - mesh.scale.y) * smoothing;
-                }
-                mesh.material.color.lerpColors(baseColor, waveTargetColor, influence);
-            });
+                if (isVertical) {
+                    mesh.scale.x += (scale / baseRatio - mesh.scale.x) * smoothing;
+                } else {
+                    mesh.scale.y += (scale / baseRatio - mesh.scale.y) * smoothing;
+                }
+                mesh.material.color.lerpColors(baseColor, waveTargetColor, influence);
+            });
 
-            // === Центрирование элемента по волне ===
-            if (centerSelector && !isVertical) {
-                const isDrivenByOffset = isMobileSwipeMode || isMobileSwipeStepMode;
-                const centerForElement = isScrollTrackMode ? activeWaveOffset : isDrivenByOffset ? wrapper.offsetWidth * activeWavePosition : currentPos;
-                
-                const blockWidth = centerSelector.offsetWidth;
-                let newLeft = centerForElement - blockWidth / 2;
-                newLeft = Math.max(0, Math.min(wrapper.offsetWidth - blockWidth, newLeft));
-                centerSelector.style.left = `${newLeft}px`;
-                centerSelector.style.top = `${container.offsetHeight - centerSelector.offsetHeight}px`;
-                centerSelector.style.position = 'absolute';
-                centerSelector.style.zIndex = 10;
-            }
-        }
+            // === Центрирование элемента по волне ===
+            if (centerSelector && !isVertical) {
+                const isDrivenByOffset = isMobileSwipeMode || isMobileSwipeStepMode;
+                const centerForElement = isScrollTrackMode ? activeWaveOffset : isDrivenByOffset ? wrapper.offsetWidth * activeWavePosition : currentPos;
+                
+                const blockWidth = centerSelector.offsetWidth;
+                let newLeft = centerForElement - blockWidth / 2;
+                newLeft = Math.max(0, Math.min(wrapper.offsetWidth - blockWidth, newLeft));
+                centerSelector.style.left = `${newLeft}px`;
+                centerSelector.style.top = `${container.offsetHeight - centerSelector.offsetHeight}px`;
+                centerSelector.style.position = 'absolute';
+                centerSelector.style.zIndex = 10;
+            }
+        }
 
-        // === Слушатели ===
-        if (isMobileSwipeMode) {
-            // ... Логика плавного свайпа с инерцией (без изменений)
-            const primaryAxis = isVertical ? 'clientY' : 'clientX';
-            wrapper.addEventListener('touchstart', e => {
-                if (e.touches.length === 1) {
-                    isTouching = true;
-                    lastTouchPos = e.touches[0][primaryAxis];
-                    velocity = 0;
-                }
-            }, { passive: true });
-            wrapper.addEventListener('touchmove', e => {
-                if (!isTouching || e.touches.length !== 1) return;
-                const currentTouchPos = e.touches[0][primaryAxis];
-                const delta = currentTouchPos - lastTouchPos;
-                totalOffset += (isVertical ? -delta : delta) * swipeVelocity;
-                lastTouchPos = currentTouchPos;
-            }, { passive: true });
-            wrapper.addEventListener('touchend', () => { isTouching = false; });
-            
-        } else if (isMobileSwipeStepMode) {
-            // === Логика ПЛАВНОГО ШАГОВОГО СВАЙПА для Волны 1 (Обновлено) ===
-            const primaryAxis = 'clientX';
-            
-            wrapper.addEventListener('touchstart', e => {
-                if (e.touches.length === 1) {
-                    startTouchPos = e.touches[0][primaryAxis];
-                    isTouching = true;
-                }
-            }, { passive: true });
+        // === Слушатели ===
+        if (isMobileSwipeMode) {
+            // ... Логика плавного свайпа с инерцией (без изменений)
+            const primaryAxis = isVertical ? 'clientY' : 'clientX';
+            wrapper.addEventListener('touchstart', e => {
+                if (e.touches.length === 1) {
+                    isTouching = true;
+                    lastTouchPos = e.touches[0][primaryAxis];
+                    velocity = 0;
+                }
+            }, { passive: true });
+            wrapper.addEventListener('touchmove', e => {
+                if (!isTouching || e.touches.length !== 1) return;
+                const currentTouchPos = e.touches[0][primaryAxis];
+                const delta = currentTouchPos - lastTouchPos;
+                totalOffset += (isVertical ? -delta : delta) * swipeVelocity;
+                lastTouchPos = currentTouchPos;
+            }, { passive: true });
+            wrapper.addEventListener('touchend', () => { isTouching = false; });
+            
+        } else if (isMobileSwipeStepMode) {
+            // === Логика ПЛАВНОГО ШАГОВОГО СВАЙПА для Волны 1 (Обновлено) ===
+            const primaryAxis = 'clientX';
+            
+            wrapper.addEventListener('touchstart', e => {
+                if (e.touches.length === 1) {
+                    startTouchPos = e.touches[0][primaryAxis];
+                    isTouching = true;
+                }
+            }, { passive: true });
 
-            wrapper.addEventListener('touchmove', e => {
-                // Ничего не делаем во время touchmove
-            }, { passive: true });
-            
-            wrapper.addEventListener('touchend', e => {
-                if (!isTouching) return;
-                isTouching = false;
-                
-                const endTouchPos = e.changedTouches ? e.changedTouches[0][primaryAxis] : 0;
-                const delta = endTouchPos - startTouchPos;
-                
-                if (Math.abs(delta) > SWIPE_THRESHOLD) {
-                    const step = width / 7;
-                    let moveStep = 0;
-                    
-                    if (delta < 0) { // Свайп влево
-                        moveStep = -step;
-                    } 
-                    else if (delta > 0) { // Свайп вправо
-                        moveStep = step;
-                    }
-                    
-                    // Обновляем целевое смещение, которое будет плавно достигаться
-                    targetOffset += moveStep; 
-                }
-            }, { passive: true });
-            // ==========================================================
+            wrapper.addEventListener('touchmove', e => {
+                // Ничего не делаем во время touchmove
+            }, { passive: true });
+            
+            wrapper.addEventListener('touchend', e => {
+                if (!isTouching) return;
+                isTouching = false;
+                
+                const endTouchPos = e.changedTouches ? e.changedTouches[0][primaryAxis] : 0;
+                const delta = endTouchPos - startTouchPos;
+                
+                if (Math.abs(delta) > SWIPE_THRESHOLD) {
+                    const step = width / 7;
+                    let moveStep = 0;
+                    
+                    if (delta < 0) { // Свайп влево
+                        moveStep = -step;
+                    } 
+                    else if (delta > 0) { // Свайп вправо
+                        moveStep = step;
+                    }
+                    
+                    // Обновляем целевое смещение, которое будет плавно достигаться
+                    targetOffset += moveStep; 
+                }
+            }, { passive: true });
+            // ==========================================================
 
-        } else if (isScrollTrackMode) {
-            // === 4. Привязка АКТИВНОЙ ЧАСТИ Волн 3 и 4 к скроллу (без изменений) ===
-            if (scrollTrackElement) {
-                scrollTrackElement.addEventListener('scroll', () => {
-                    if (!isVertical) {
-                        const maxScroll = scrollTrackElement.scrollWidth - scrollTrackElement.clientWidth;
-                        const scrollFraction = scrollTrackElement.scrollLeft / maxScroll;
-                        activeWaveOffset = width * scrollFraction; 
-                    }
-                }, { passive: true });
-            }
-            // ====================================================================
-        } else {
-            // Режим движения по мышке (по умолчанию, без изменений)
-            wrapper.addEventListener('mousemove', e => {
-                const rect = wrapper.getBoundingClientRect();
-                targetPos = isVertical
-                    ? rect.height - (e.clientY - rect.top)
-                    : e.clientX - rect.left;
-            });
-        }
+        } else if (isScrollTrackMode) {
+            // === 4. Привязка АКТИВНОЙ ЧАСТИ Волн 3 и 4 к скроллу (без изменений) ===
+            if (scrollTrackElement) {
+                scrollTrackElement.addEventListener('scroll', () => {
+                    if (!isVertical) {
+                        const maxScroll = scrollTrackElement.scrollWidth - scrollTrackElement.clientWidth;
+                        const scrollFraction = scrollTrackElement.scrollLeft / maxScroll;
+                        activeWaveOffset = width * scrollFraction; 
+                    }
+                }, { passive: true });
+            }
+            // ====================================================================
+        } else {
+            // Режим движения по мышке (по умолчанию, без изменений)
+            wrapper.addEventListener('mousemove', e => {
+                const rect = wrapper.getBoundingClientRect();
+                targetPos = isVertical
+                    ? rect.height - (e.clientY - rect.top)
+                    : e.clientX - rect.left;
+            });
+        }
 
-        // === Логика цвета активного слайда (без изменений) ===
-        function handleDynamicColor() {
-            const isWave3or4 = wrapperSelector.includes('wave3') || wrapperSelector.includes('wave4');
-            if (IS_MOBILE && isWave3or4) {
-                waveTargetColor = new THREE.Color(options.waveActiveColor ?? '#ff661a');
-                return;
-            }
-            const activePreview = document.querySelector('.w-slide .case_preview.active');
-            if (activePreview) {
-                const activeWrap = activePreview.closest('.case_preview_wrap');
-                if (activeWrap && activeWrap.hasAttribute('data-wave-white')) {
-                    waveTargetColor = new THREE.Color('#ffffff');
-                } else {
-                    waveTargetColor = new THREE.Color('#44403F');
-                }
-            }
-        }
+        // === Логика цвета активного слайда (без изменений) ===
+        function handleDynamicColor() {
+            const isWave3or4 = wrapperSelector.includes('wave3') || wrapperSelector.includes('wave4');
+            if (IS_MOBILE && isWave3or4) {
+                waveTargetColor = new THREE.Color(options.waveActiveColor ?? '#ff661a');
+                return;
+            }
+            const activePreview = document.querySelector('.w-slide .case_preview.active');
+            if (activePreview) {
+                const activeWrap = activePreview.closest('.case_preview_wrap');
+                if (activeWrap && activeWrap.hasAttribute('data-wave-white')) {
+                    waveTargetColor = new THREE.Color('#ffffff');
+                } else {
+                    waveTargetColor = new THREE.Color('#44403F');
+                }
+            }
+        }
 
-        // === Анимация ===
-        function animate() {
-            requestAnimationFrame(animate);
-            handleDynamicColor();
+        // === Анимация ===
+        function animate() {
+            requestAnimationFrame(animate);
+            handleDynamicColor();
 
-            if (isMobileSwipeMode) {
-                // Плавное движение с инерцией и зацикливанием (без изменений)
-                if (!isTouching) {
-                    totalOffset += velocity;
-                    velocity *= 0.95;
-                    if (Math.abs(velocity) < 0.01) velocity = 0;
-                }
-                
-                lines.forEach(mesh => {
-                    const currentPos = mesh.userData.initialPos + totalOffset;
-                    if (isVertical) {
-                        if (currentPos < -height / 2) mesh.userData.initialPos += totalLinesLength;
-                        else if (currentPos > height / 2) mesh.userData.initialPos -= totalLinesLength;
-                        mesh.position.y = mesh.userData.initialPos + totalOffset;
-                    } else {
-                        if (currentPos < -width / 2) mesh.userData.initialPos += totalLinesLength;
-                        else if (currentPos > width / 2) mesh.userData.initialPos -= totalLinesLength;
-                        mesh.position.x = mesh.userData.initialPos + totalOffset;
-                    }
-                });
-                updateWave(activeWavePosition);
-                
-            } else if (isMobileSwipeStepMode) {
-                // === Плавное движение к целевому офсету и зацикливание (Обновлено) ===
-                
-                // 1. Плавное движение к targetOffset
-                totalOffset += (targetOffset - totalOffset) * STEP_SMOOTHING;
+            if (isMobileSwipeMode) {
+                // Плавное движение с инерцией и зацикливанием (без изменений)
+                if (!isTouching) {
+                    totalOffset += velocity;
+                    velocity *= 0.95;
+                    if (Math.abs(velocity) < 0.01) velocity = 0;
+                }
+                
+                lines.forEach(mesh => {
+                    const currentPos = mesh.userData.initialPos + totalOffset;
+                    if (isVertical) {
+                        if (currentPos < -height / 2) mesh.userData.initialPos += totalLinesLength;
+                        else if (currentPos > height / 2) mesh.userData.initialPos -= totalLinesLength;
+                        mesh.position.y = mesh.userData.initialPos + totalOffset;
+                    } else {
+                        if (currentPos < -width / 2) mesh.userData.initialPos += totalLinesLength;
+                        else if (currentPos > width / 2) mesh.userData.initialPos -= totalLinesLength;
+                        mesh.position.x = mesh.userData.initialPos + totalOffset;
+                    }
+                });
+                updateWave(activeWavePosition);
+                
+            } else if (isMobileSwipeStepMode) {
+                // === Плавное движение к целевому офсету и зацикливание (Обновлено) ===
+                
+                // 1. Плавное движение к targetOffset
+                totalOffset += (targetOffset - totalOffset) * STEP_SMOOTHING;
 
-                // 2. Логика зацикливания
-                lines.forEach(mesh => {
-                    const currentPos = mesh.userData.initialPos + totalOffset;
-                    
-                    if (isVertical) {
-                        if (currentPos < -height / 2) mesh.userData.initialPos += totalLinesLength;
-                        else if (currentPos > height / 2) mesh.userData.initialPos -= totalLinesLength;
-                        mesh.position.y = mesh.userData.initialPos + totalOffset;
-                    } else {
-                        if (currentPos < -width / 2) mesh.userData.initialPos += totalLinesLength;
-                        else if (currentPos > width / 2) mesh.userData.initialPos -= totalLinesLength;
-                        mesh.position.x = mesh.userData.initialPos + totalOffset;
-                    }
-                });
-                
-                updateWave(activeWavePosition);
-                
-            } else if (isScrollTrackMode) {
-                // Скролл-трек (Волны 3, 4) - только движение линий
-                totalOffset = 0; // Линии не двигаются, только активная точка
-                
-                lines.forEach(mesh => {
-                    if (isVertical) {
-                        mesh.position.y = mesh.userData.initialPos + totalOffset;
-                    } else {
-                        mesh.position.x = mesh.userData.initialPos + totalOffset;
-                    }
-                });
+                // 2. Логика зацикливания
+                lines.forEach(mesh => {
+                    const currentPos = mesh.userData.initialPos + totalOffset;
+                    
+                    if (isVertical) {
+                        if (currentPos < -height / 2) mesh.userData.initialPos += totalLinesLength;
+                        else if (currentPos > height / 2) mesh.userData.initialPos -= totalLinesLength;
+                        mesh.position.y = mesh.userData.initialPos + totalOffset;
+                    } else {
+                        if (currentPos < -width / 2) mesh.userData.initialPos += totalLinesLength;
+                        else if (currentPos > width / 2) mesh.userData.initialPos -= totalLinesLength;
+                        mesh.position.x = mesh.userData.initialPos + totalOffset;
+                    }
+                });
+                
+                updateWave(activeWavePosition);
+                
+            } else if (isScrollTrackMode) {
+                // Скролл-трек (Волны 3, 4) - только движение линий
+                totalOffset = 0; // Линии не двигаются, только активная точка
+                
+                lines.forEach(mesh => {
+                    if (isVertical) {
+                        mesh.position.y = mesh.userData.initialPos + totalOffset;
+                    } else {
+                        mesh.position.x = mesh.userData.initialPos + totalOffset;
+                    }
+                });
 
-                updateWave(activeWaveOffset);
-            }
-            else {
-                // Режим движения по мышке (по умолчанию, без изменений)
-                currentPos += (targetPos - currentPos) * smoothing;
-                updateWave(currentPos);
-            }
+                updateWave(activeWaveOffset);
+            }
+            else {
+                // Режим движения по мышке (по умолчанию, без изменений)
+                currentPos += (targetPos - currentPos) * smoothing;
+                updateWave(currentPos);
+            }
 
-            renderer.render(scene, camera);
-        }
-        animate();
+            renderer.render(scene, camera);
+        }
+        animate();
 
-        // === Остальной код (без изменений) ===
-        if (!IS_MOBILE && options.dynamicColorWithCards) { 
-            const caseCards = document.querySelectorAll('.case_preview_wrap');
-            caseCards.forEach(card => {
-                card.addEventListener('mouseenter', () => {
-                    if (card.hasAttribute('data-wave-white')) {
-                        waveTargetColor = new THREE.Color('#ffffff');
-                    } else {
-                        waveTargetColor = new THREE.Color('#44403F');
-                    }
-                });
-            });
-        }
+        // === Остальной код (без изменений) ===
+        if (!IS_MOBILE && options.dynamicColorWithCards) { 
+            const caseCards = document.querySelectorAll('.case_preview_wrap');
+            caseCards.forEach(card => {
+                card.addEventListener('mouseenter', () => {
+                    if (card.hasAttribute('data-wave-white')) {
+                        waveTargetColor = new THREE.Color('#ffffff');
+                    } else {
+                        waveTargetColor = new THREE.Color('#44403F');
+                    }
+                });
+            });
+        }
 
-        window.addEventListener('resize', () => {
-            width = container.offsetWidth;
-            height = container.offsetHeight;
-            renderer.setSize(width, height);
-            camera.left = width / -2;
-            camera.right = width / 2;
-            camera.top = height / 2;
-            camera.bottom = height / -2;
-            camera.updateProjectionMatrix();
-            
-            if (isScrollTrackMode && scrollTrackElement) {
-                const maxScroll = scrollTrackElement.scrollWidth - scrollTrackElement.clientWidth;
-                const scrollFraction = scrollTrackElement.scrollLeft / maxScroll;
-                activeWaveOffset = width * scrollFraction;
-            }
-        });
+        window.addEventListener('resize', () => {
+            width = container.offsetWidth;
+            height = container.offsetHeight;
+            renderer.setSize(width, height);
+            camera.left = width / -2;
+            camera.right = width / 2;
+            camera.top = height / 2;
+            camera.bottom = height / -2;
+            camera.updateProjectionMatrix();
+            
+            if (isScrollTrackMode && scrollTrackElement) {
+                const maxScroll = scrollTrackElement.scrollWidth - scrollTrackElement.clientWidth;
+                const scrollFraction = scrollTrackElement.scrollLeft / maxScroll;
+                activeWaveOffset = width * scrollFraction;
+            }
+        });
 
-        return { renderer, scene, camera, setTotalOffset };
-    }
-
-
-    // ==========================================================
-    // === Инициализация и настройка Волн ===
-    // ==========================================================
-
-    const wave1Container = document.querySelector('.wave-height-container');
-    createThreeWave('.wave-wrapper', '.wave-height-container', {
-        direction: 'horizontal',
-        dynamicColorWithCards: true,
-        isMobileSwipeStepMode: IS_MOBILE // Активируем новый режим плавного шагового свайпа
-    });
-    
-    // ========================================================================
+        return { renderer, scene, camera, setTotalOffset };
+    }
 
 
-    // === Вторая волна (в табе, с центрирующимся элементом) ===
-    function initWave2WhenTabActive() {
-        const tabPane = document.querySelector('#tab-pane-wave2');
-        if (!tabPane) return;
+    // ==========================================================
+    // === Инициализация и настройка Волн ===
+    // ==========================================================
 
-        const initWaveOptions = {
-            direction: 'horizontal',
-            baseColor: '#514B49',
-            waveActiveColor: '#44403F',
-            centerSelector: '#wave2-center', 
-            waveInfluenceRatio: 0.08,
-            isMobileSwipeMode: false 
-        };
-
-        let wave2Instance = null;
-
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach(mutation => {
-                if (mutation.attributeName === 'class') {
-                    if (tabPane.classList.contains('w--tab-active')) {
-                        if (!tabPane.getAttribute('data-wave2-init')) {
-                            wave2Instance = createThreeWave('#wave2', '#wave2-container', initWaveOptions);
-                            tabPane.setAttribute('data-wave2-init', 'true');
-                        }
-                    }
-                }
-            });
-        });
-
-        observer.observe(tabPane, { attributes: true, attributeFilter: ['class'] });
-
-        if (tabPane.classList.contains('w--tab-active')) {
-            wave2Instance = createThreeWave('#wave2', '#wave2-container', initWaveOptions);
-            tabPane.setAttribute('data-wave2-init', 'true');
-        }
-    }
-    initWave2WhenTabActive();
+    const wave1Container = document.querySelector('.wave-height-container');
+    createThreeWave('.wave-wrapper', '.wave-height-container', {
+        direction: 'horizontal',
+        dynamicColorWithCards: true,
+        isMobileSwipeStepMode: IS_MOBILE // Активируем новый режим плавного шагового свайпа
+    });
+    
+    // ========================================================================
 
 
-    // === Третья волна (Горизонтальная, скролл-трек) ===
-    createThreeWave('#wave3-wrapper', '#wave3-height-container', {
-        direction: 'horizontal',
-        numLines: 55,
-        numLinesMobile: 30, 
-        scrollTrackSelector: '#scroll-track', 
-        baseColor: '#E5E5E5',
-        waveActiveColor: '#ff661a',
-        waveInfluenceRatio: 0.08,
-        activeWavePosition: 0.115 
-    });
+    // === Вторая волна (в табе, с центрирующимся элементом) ===
+    function initWave2WhenTabActive() {
+        const tabPane = document.querySelector('#tab-pane-wave2');
+        if (!tabPane) return;
 
-    // === Четвертая волна (Вертикальная, скролл-трек) ===
-    createThreeWave('#wave4-wrapper', '#wave4-height-container', {
-        direction: 'vertical',
-        numLines: 65,
-        numLinesMobile: 40, 
-        scrollTrackSelector: '#scroll-track', 
-        baseColor: '#D3D3D3',
-        waveActiveColor: '#ff661a', 
-        baseRatio: 0.1,
-        waveRatio: 0.35,
-        lineThickness: 1,
-        waveInfluenceRatio: 0.06
-    });
+        const initWaveOptions = {
+            direction: 'horizontal',
+            baseColor: '#514B49',
+            waveActiveColor: '#44403F',
+            centerSelector: '#wave2-center', 
+            waveInfluenceRatio: 0.08,
+            isMobileSwipeMode: false 
+        };
+
+        let wave2Instance = null;
+
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach(mutation => {
+                if (mutation.attributeName === 'class') {
+                    if (tabPane.classList.contains('w--tab-active')) {
+                        if (!tabPane.getAttribute('data-wave2-init')) {
+                            wave2Instance = createThreeWave('#wave2', '#wave2-container', initWaveOptions);
+                            tabPane.setAttribute('data-wave2-init', 'true');
+                        }
+                    }
+                }
+            });
+        });
+
+        observer.observe(tabPane, { attributes: true, attributeFilter: ['class'] });
+
+        if (tabPane.classList.contains('w--tab-active')) {
+            wave2Instance = createThreeWave('#wave2', '#wave2-container', initWaveOptions);
+            tabPane.setAttribute('data-wave2-init', 'true');
+        }
+    }
+    initWave2WhenTabActive();
+
+
+    // === Третья волна (Горизонтальная, скролл-трек) ===
+    createThreeWave('#wave3-wrapper', '#wave3-height-container', {
+        direction: 'horizontal',
+        numLines: 55,
+        numLinesMobile: 30, 
+        scrollTrackSelector: '#scroll-track', 
+        baseColor: '#E5E5E5',
+        waveActiveColor: '#ff661a',
+        waveInfluenceRatio: 0.08,
+        activeWavePosition: 0.115 
+    });
+
+    // === Четвертая волна (Вертикальная, скролл-трек) ===
+    const wave4Options = {
+        direction: 'vertical', // По умолчанию - вертикально
+        numLines: 65,
+        numLinesMobile: 40, 
+        scrollTrackSelector: '#scroll-track', 
+        baseColor: '#D3D3D3',
+        waveActiveColor: '#ff661a', 
+        baseRatio: 0.1,
+        waveRatio: 0.35,
+        lineThickness: 1,
+        waveInfluenceRatio: 0.06
+    };
+
+    // === ДОБАВЛЕННАЯ ЛОГИКА ДЛЯ МОБИЛЬНОЙ ВЕРСИИ ВОЛНЫ 4 ===
+    if (IS_MOBILE) {
+        wave4Options.direction = 'horizontal'; // Делаем горизонтальной
+        // Используем настройки Третьей волны для корректной работы скролл-трека
+        wave4Options.numLines = 55; // Как у wave3 (для десктопа, на мобилке возьмется numLinesMobile: 40)
+        wave4Options.numLinesMobile = 40; // Уменьшим немного для отличия от wave3
+        wave4Options.waveInfluenceRatio = 0.08; // Как у wave3
+        wave4Options.activeWavePosition = 0.115; // Как у wave3
+    }
+    // ========================================================
+    
+    createThreeWave('#wave4-wrapper', '#wave4-height-container', wave4Options);
 });
+
 
     // ========================================================================================================
     // === CLIENTS REVIEW CMS CUSTOM TABER ===
@@ -1488,6 +1502,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 });
+
 
 
 
