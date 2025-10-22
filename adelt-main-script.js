@@ -848,7 +848,7 @@ document.addEventListener('DOMContentLoaded', () => {
         direction: 'vertical', // По умолчанию - вертикально
         numLines: 65,
         numLinesMobile: 40, 
-        scrollTrackSelector: '#scroll-track', 
+        scrollTrackSelector: '#scroll-track2', 
         baseColor: '#D3D3D3',
         waveActiveColor: '#ff661a', 
         baseRatio: 0.1,
@@ -1502,6 +1502,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 });
+
 
 
 
