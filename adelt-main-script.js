@@ -869,9 +869,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // ========================================================
     
     createThreeWave('#wave4-wrapper', '#wave4-height-container', wave4Options);
+
+    if (!IS_MOBILE) {
+            createThreeWave('#wave5-wrapper', '#wave5-height-container', {
+            direction: 'horizontal',
+            numLines: 103,
+            baseColor: '#FFD700', 
+            waveActiveColor: '#FFA500', 
+            waveInfluenceRatio: 0.08,
+            activeWavePosition: 0.5 
+        });
+    }
 });
-
-
 
 
 
