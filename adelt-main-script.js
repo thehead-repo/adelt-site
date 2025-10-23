@@ -877,10 +877,10 @@ console.log('Wave 5: Checking IS_MOBILE status...');
             
         createThreeWave('#wave5-wrapper', '#wave5-height-container', {
             direction: 'horizontal',
-            numLines: 103,
+            numLines: 130,
             baseColor: '#E5E5E5', 
             waveActiveColor: '#ff661a', 
-            waveInfluenceRatio: 0.08,
+            waveInfluenceRatio: 0.04,
             activeWavePosition: 0.5 
         });
         
@@ -888,6 +888,7 @@ console.log('Wave 5: Checking IS_MOBILE status...');
     }
     console.log('Wave 5: End of initialization block.');
 });
+
 
 
 
