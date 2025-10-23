@@ -870,7 +870,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     createThreeWave('#wave4-wrapper', '#wave4-height-container', wave4Options);
 
-            createThreeWave('#wave5-wrapper', '#wave5-height-container', {
+console.log('Wave 5: Checking IS_MOBILE status...');
+    
+    if (!IS_MOBILE) {
+        console.log('Wave 5: IS_MOBILE is FALSE. Attempting to create wave...');
+            
+        createThreeWave('#wave5-wrapper', '#wave5-height-container', {
             direction: 'horizontal',
             numLines: 103,
             baseColor: '#E5E5E5', 
@@ -878,8 +883,11 @@ document.addEventListener('DOMContentLoaded', () => {
             waveInfluenceRatio: 0.08,
             activeWavePosition: 0.5 
         });
+        
+        console.log('Wave 5: createThreeWave function called.');
+    }
+    console.log('Wave 5: End of initialization block.');
 });
-
 
 
 
