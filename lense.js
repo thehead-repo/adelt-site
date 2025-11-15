@@ -4,13 +4,13 @@ import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.150.1/examples/
 import { DRACOLoader } from 'https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/loaders/DRACOLoader.js';
 import { RGBELoader } from 'https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/loaders/RGBELoader.js';
 
-// Сцена, камера, рендер
+// ===== Сцена, камера, рендер =====
 const container = document.getElementById('three-container');
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 100);
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
 camera.position.set(0, 1.15, 5);
 
-const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -18,43 +18,43 @@ renderer.toneMappingExposure = 0.8;
 renderer.useLegacyLights = false;
 container.appendChild(renderer.domElement);
 
-// OrbitControls
+// ===== OrbitControls =====
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.enablePan = false;
 controls.enableZoom = false;
 controls.enableRotate = false; // включим только по средней кнопке мыши
 let rotateEnabled = false;
-window.addEventListener('mousedown', e => { if(e.button===1) rotateEnabled=true; });
-window.addEventListener('mouseup', e => { if(e.button===1) rotateEnabled=false; });
-controls.update = () => { 
+window.addEventListener('mousedown', e => { if (e.button === 1) rotateEnabled = true; });
+window.addEventListener('mouseup', e => { if (e.button === 1) rotateEnabled = false; });
+controls.update = () => {
     controls.enableRotate = rotateEnabled;
-    controls.update(); 
+    controls.update();
 };
 
-// Свет
+// ===== Свет =====
 const dir1 = new THREE.DirectionalLight(0xffffff, 0.6);
-dir1.position.set(5,5,5);
+dir1.position.set(5, 5, 5);
 scene.add(dir1);
 
 const dir2 = new THREE.DirectionalLight(0xffffff, 0.4);
-dir2.position.set(-5,5,5);
+dir2.position.set(-5, 5, 5);
 scene.add(dir2);
 
 const ambient = new THREE.AmbientLight(0xffffff, 0.3);
 scene.add(ambient);
 
-// HDRI окружение
+// ===== HDRI окружение =====
 const pmremGenerator = new THREE.PMREMGenerator(renderer);
 new RGBELoader()
-  .setDataType(THREE.UnsignedByteType)
-  .load('https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/studio_small_03_1k.hdr', texture => {
-      const envMap = pmremGenerator.fromEquirectangular(texture).texture;
-      scene.environment = envMap;
-      texture.dispose();
-  });
+    .setDataType(THREE.UnsignedByteType)
+    .load('https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/studio_small_03_1k.hdr', texture => {
+        const envMap = pmremGenerator.fromEquirectangular(texture).texture;
+        scene.environment = envMap;
+        texture.dispose();
+    });
 
-// GLTF + DRACO
+// ===== GLTF + DRACO =====
 const loader = new GLTFLoader();
 const dracoLoader = new DRACOLoader();
 dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
@@ -68,9 +68,9 @@ document.addEventListener('mousemove', e => {
 
 loader.load('https://thehead.digital/js/lenseslogo.glb', gltf => {
     gltf.scene.traverse(child => {
-        if(child.isMesh){
+        if (child.isMesh) {
             // Cylinder как прозрачная линза
-            if(child.name.includes('Cylinder')){
+            if (child.name.includes('Cylinder')) {
                 child.material = new THREE.MeshPhysicalMaterial({
                     color: 0xffffff,
                     metalness: 0,
@@ -89,8 +89,8 @@ loader.load('https://thehead.digital/js/lenseslogo.glb', gltf => {
             }
 
             // Curve
-            if(child.name==='Curve'){
-                child.material = new THREE.MeshStandardMaterial({color:0x111111, metalness:0, roughness:0.5});
+            if (child.name === 'Curve') {
+                child.material = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0, roughness: 0.5 });
                 curveMesh = child;
             }
         }
@@ -98,21 +98,18 @@ loader.load('https://thehead.digital/js/lenseslogo.glb', gltf => {
     scene.add(gltf.scene);
 });
 
-// Анимация
-function animate(){
+// ===== Анимация =====
+function animate() {
     requestAnimationFrame(animate);
-    if(curveMesh) curveMesh.position.x = mouseX * 2;
+    if (curveMesh) curveMesh.position.x = mouseX * 2;
     controls.update();
     renderer.render(scene, camera);
 }
 animate();
 
-// Resize
+// ===== Resize =====
 window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
-
-
-
