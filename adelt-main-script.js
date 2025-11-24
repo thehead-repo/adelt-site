@@ -396,44 +396,41 @@ function createThreeBlock(options) {
         );
     }
 
-    // === ЛОГ НАСТРОЕК СВЕТА ===
-
-    console.log(
-        `%c Свет — настройки (${options.containerId})`,
-        "color:#5bc0ff; font-size:14px; font-weight:700;"
-    );
-
-    console.table([
-        {
-            light: "AmbientLight",
-            type: ambientLight.type,
-            intensity: ambientLight.intensity,
-            color: ambientLight.color.getHexString(),
-            position: "-"
-        },
-        {
-            light: "DirectionalLight (front)",
-            type: directionalLight.type,
-            intensity: directionalLight.intensity,
-            color: directionalLight.color.getHexString(),
-            position: directionalLight.position.toArray().map(n => n.toFixed(2))
-        },
-        {
-            light: "DirectionalLight (top)",
-            type: anotherLight.type,
-            intensity: anotherLight.intensity,
-            color: anotherLight.color.getHexString(),
-            position: anotherLight.position.toArray().map(n => n.toFixed(2))
-        },
-        {
-            light: "Hemisphere (diffuse)",
-            type: bigDiffuseLight.type,
-            intensity: bigDiffuseLight.intensity,
-            color_sky: bigDiffuseLight.color.getHexString(),
-            color_ground: bigDiffuseLight.groundColor.getHexString(),
-            position: bigDiffuseLight.position.toArray().map(n => n.toFixed(2))
-        }
-    ]);
+    // === Live Debug Light Panel ===
+let lastLog = 0;
+function logLights() {
+    const now = performance.now();
+    if (now - lastLog > 200) {  // обновление 5 раз в секунду, не чаще
+        console.clear();
+        console.table({
+            AmbientLight: {
+                intensity: ambientLight.intensity,
+                color: ambientLight.color.getHexString()
+            },
+            DirectionalMain: {
+                intensity: directionalLight.intensity,
+                x: directionalLight.position.x,
+                y: directionalLight.position.y,
+                z: directionalLight.position.z
+            },
+            DirectionalTop: {
+                intensity: anotherLight.intensity,
+                x: anotherLight.position.x,
+                y: anotherLight.position.y,
+                z: anotherLight.position.z
+            },
+            BigDiffuseLight: {
+                intensity: bigDiffuseLight.intensity,
+                x: bigDiffuseLight.position.x,
+                y: bigDiffuseLight.position.y,
+                z: bigDiffuseLight.position.z,
+                skyColor: bigDiffuseLight.color.getHexString(),
+                groundColor: bigDiffuseLight.groundColor.getHexString()
+            }
+        });
+        lastLog = now;
+    }
+}
 
     // === Анимация ===
     function animate() {
@@ -958,6 +955,7 @@ console.log('Wave 5: Checking IS_MOBILE status...');
     }
     console.log('Wave 5: End of initialization block.');
 });
+
 
 
 
