@@ -322,7 +322,7 @@ function createThreeBlock(options) {
 
     // === Сцена ===
     const scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(0xffffff, 10, 1000); 
+    scene.fog = new THREE.Fog(0xffffff, 10, 1000);
 
     // === Камера ===
     const camera = new THREE.PerspectiveCamera(30, width / height, 0.1, 1000);
@@ -338,38 +338,25 @@ function createThreeBlock(options) {
     container.appendChild(renderer.domElement);
 
     // === Источники света ===
+
+    // 1. Мягкий окружающий свет
     const ambientLight = new THREE.AmbientLight(0x404040, 2);
     scene.add(ambientLight);
 
+    // 2. Фронтальный
     const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
-    directionalLight.position.set(3, -7, 5);
+    directionalLight.position.set(0, 0, 50);
     scene.add(directionalLight);
 
+    // 3. Верхний
     const anotherLight = new THREE.DirectionalLight(0xffffff, 1);
-    anotherLight.position.set(-5, 3.5, 2);
+    anotherLight.position.set(0, 10, 0);
     scene.add(anotherLight);
 
-    // === Лайв-лог в консоль ===
-    function logLightSettings() {
-        console.log(`🟦 LIGHT SETTINGS for ${options.containerId}`);
-        console.log("• ambientLight:", {
-            color: ambientLight.color.getHexString(),
-            intensity: ambientLight.intensity,
-        });
-        console.log("• directionalLight:", {
-            color: directionalLight.color.getHexString(),
-            intensity: directionalLight.intensity,
-            position: directionalLight.position,
-        });
-        console.log("• anotherLight:", {
-            color: anotherLight.color.getHexString(),
-            intensity: anotherLight.intensity,
-            position: anotherLight.position,
-        });
-        console.log("• camera:", camera.position);
-        console.log("• renderer toneMappingExposure:", renderer.toneMappingExposure);
-        console.log("----------------------------------------------------");
-    }
+    // 4. Рассеянный большой
+    const bigDiffuseLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
+    bigDiffuseLight.position.set(0, 50, 100);
+    scene.add(bigDiffuseLight);
 
     // === Модель ===
     let mesh = null;
@@ -391,11 +378,9 @@ function createThreeBlock(options) {
         camera.lookAt(0, 0, 0);
 
         directionalLight.position.z = cameraDistance / 2;
-
-        // Лог после позиционирования
-        logLightSettings();
     }
 
+    // === Загрузка модели ===
     if (options.modelUrl) {
         const loader = new THREE.GLTFLoader();
         loader.load(
@@ -405,25 +390,52 @@ function createThreeBlock(options) {
                 if (options.modelScale) mesh.scale.setScalar(options.modelScale);
                 scene.add(mesh);
                 fitModelToCamera(mesh, camera);
-
-                // Положим в window для live-редактирования
-                window[`three_${options.containerId}`] = {
-                    scene,
-                    camera,
-                    renderer,
-                    ambientLight,
-                    directionalLight,
-                    anotherLight,
-                    mesh,
-                };
-
-                console.log(`🟩 THREE LIVE CONTROLS: window.three_${options.containerId}`);
             },
             undefined,
             err => console.error('Ошибка загрузки модели:', err)
         );
     }
 
+    // === ЛОГ НАСТРОЕК СВЕТА ===
+
+    console.log(
+        `%c Свет — настройки (${options.containerId})`,
+        "color:#5bc0ff; font-size:14px; font-weight:700;"
+    );
+
+    console.table([
+        {
+            light: "AmbientLight",
+            type: ambientLight.type,
+            intensity: ambientLight.intensity,
+            color: ambientLight.color.getHexString(),
+            position: "-"
+        },
+        {
+            light: "DirectionalLight (front)",
+            type: directionalLight.type,
+            intensity: directionalLight.intensity,
+            color: directionalLight.color.getHexString(),
+            position: directionalLight.position.toArray().map(n => n.toFixed(2))
+        },
+        {
+            light: "DirectionalLight (top)",
+            type: anotherLight.type,
+            intensity: anotherLight.intensity,
+            color: anotherLight.color.getHexString(),
+            position: anotherLight.position.toArray().map(n => n.toFixed(2))
+        },
+        {
+            light: "Hemisphere (diffuse)",
+            type: bigDiffuseLight.type,
+            intensity: bigDiffuseLight.intensity,
+            color_sky: bigDiffuseLight.color.getHexString(),
+            color_ground: bigDiffuseLight.groundColor.getHexString(),
+            position: bigDiffuseLight.position.toArray().map(n => n.toFixed(2))
+        }
+    ]);
+
+    // === Анимация ===
     function animate() {
         requestAnimationFrame(animate);
         if (mesh) mesh.rotation.y += options.rotationSpeed ?? 0.01;
@@ -431,6 +443,7 @@ function createThreeBlock(options) {
     }
     animate();
 
+    // === Ресайз ===
     window.addEventListener('resize', () => {
         const rect = container.getBoundingClientRect();
         const w = rect.width * ((options.sizePercent?.width ?? 100) / 100);
@@ -440,6 +453,7 @@ function createThreeBlock(options) {
         camera.updateProjectionMatrix();
     });
 }
+
 
 // === Примеры вызова ===
 createThreeBlock({
@@ -944,5 +958,6 @@ console.log('Wave 5: Checking IS_MOBILE status...');
     }
     console.log('Wave 5: End of initialization block.');
 });
+
 
 
