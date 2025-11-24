@@ -475,7 +475,7 @@ if (scrollTrackElement && (isScrollTrackMode || options.isDesktopScrollBar)) {
 
         // === 2. Режимы движения волн на мобилке (Обновлено) ===
         const isMobileSwipeStepMode = options.isMobileSwipeStepMode ?? false; 
-        const isScrollTrackMode = options.scrollTrackSelector && IS_MOBILE; 
+        const isScrollTrackMode = (options.scrollTrackSelector && IS_MOBILE) || options.isDesktopScrollBar; 
         const scrollTrackElement = isScrollTrackMode ? document.querySelector(options.scrollTrackSelector) : null;
 
         const isMobileSwipeMode = (options.isMobileSwipeMode ?? IS_MOBILE) && !isMobileSwipeStepMode && !isScrollTrackMode;
@@ -910,6 +910,7 @@ console.log('Wave 5: Checking IS_MOBILE status...');
     }
     console.log('Wave 5: End of initialization block.');
 });
+
 
 
 
