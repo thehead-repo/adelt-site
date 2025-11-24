@@ -323,40 +323,63 @@ function createThreeBlock(options) {
 
     // === Сцена, камера, рендерер ===
     const scene = new THREE.Scene();
-    // Добавим немного тумана для глубины
-    scene.fog = new THREE.Fog(0xffffff, 10, 1000); 
+    scene.fog = new THREE.Fog(0xffffff, 10, 1000);
 
     const camera = new THREE.PerspectiveCamera(30, width / height, 0.1, 1000);
 
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(width, height);
-    // Настройки для корректного отображения PBR материалов
     renderer.outputEncoding = THREE.sRGBEncoding;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
 
     container.appendChild(renderer.domElement);
 
-    // === Источник света ===
-    // Добавляем мягкий рассеянный свет, который освещает все объекты равномерно
-    const ambientLight = new THREE.AmbientLight(0x404040, 2); // Мягкий белый свет с интенсивностью 2
+    // === Свет ===
+    const ambientLight = new THREE.AmbientLight(0x404040, 2);
     scene.add(ambientLight);
 
-    // Добавляем направленный свет перед моделью
-    // Цвет (0xffffff), Интенсивность (2)
     const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
-    // Позиционируем свет перед камерой, чтобы он светил на модель
-    directionalLight.position.set(0, 0, 50); 
+    directionalLight.position.set(0, 0, 50);
     scene.add(directionalLight);
 
-    // Добавляем дополнительный свет сверху
     const anotherLight = new THREE.DirectionalLight(0xffffff, 1);
-    anotherLight.position.set(0, 10, 0); 
+    anotherLight.position.set(0, 10, 0);
     scene.add(anotherLight);
 
-    // === Вывод объектов в консоль ===
-    // Делаем объекты доступными через window для отладки в консоли
+
+    // === GUI ===
+    const gui = new lil.GUI({ title: `Lights: ${options.containerId}`, width: 300 });
+
+    // Папка Ambient
+    const ambientFolder = gui.addFolder("Ambient Light");
+    ambientFolder.add(ambientLight, "intensity", 0, 10, 0.01);
+    ambientFolder.addColor({ color: ambientLight.color.getHex() }, "color")
+        .onChange(v => ambientLight.color.set(v));
+
+    // Папка Directional 1
+    const dir1Folder = gui.addFolder("Directional Light 1");
+    dir1Folder.add(directionalLight, "intensity", 0, 10, 0.01);
+    dir1Folder.addColor({ color: directionalLight.color.getHex() }, "color")
+        .onChange(v => directionalLight.color.set(v));
+    dir1Folder.add(directionalLight.position, "x", -100, 100, 0.1);
+    dir1Folder.add(directionalLight.position, "y", -100, 100, 0.1);
+    dir1Folder.add(directionalLight.position, "z", -100, 100, 0.1);
+
+    // Папка Directional 2
+    const dir2Folder = gui.addFolder("Directional Light 2");
+    dir2Folder.add(anotherLight, "intensity", 0, 10, 0.01);
+    dir2Folder.addColor({ color: anotherLight.color.getHex() }, "color")
+        .onChange(v => anotherLight.color.set(v));
+    dir2Folder.add(anotherLight.position, "x", -100, 100, 0.1);
+    dir2Folder.add(anotherLight.position, "y", -100, 100, 0.1);
+    dir2Folder.add(anotherLight.position, "z", -100, 100, 0.1);
+
+    // Спрятать GUI на мобильных (по желанию)
+    if (window.innerWidth < 768) gui.close();
+
+    // === Debug доступ в консоли ===
     const debugName = `threeBlock_${options.containerId}`;
     window[debugName] = {
         scene,
@@ -365,12 +388,12 @@ function createThreeBlock(options) {
         ambientLight,
         directionalLight,
         anotherLight,
+        gui,
         options,
-        // Также можно добавить функцию рендера, если захотите вручную обновлять сцену
-        render: () => renderer.render(scene, camera) 
+        render: () => renderer.render(scene, camera)
     };
-    console.log(`Объекты сцены для контейнера #${options.containerId} доступны в window.${debugName}`);
-    console.log(`Пример использования: window.${debugName}.directionalLight.intensity = 0.5; window.${debugName}.render();`);
+
+    console.log(`GUI и свет доступны в window.${debugName}`);
 
 
     // === Модель ===
@@ -391,13 +414,11 @@ function createThreeBlock(options) {
 
         camera.position.set(0, 0, cameraDistance);
         camera.lookAt(0, 0, 0);
-        
-        // Перемещаем источник направленного света ближе к модели после ее размещения
+
         directionalLight.position.z = cameraDistance / 2;
     }
 
     if (options.modelUrl) {
-        // Убедитесь, что THREE.GLTFLoader доступен (подключен через <script> или импортирован)
         const loader = new THREE.GLTFLoader();
         loader.load(
             options.modelUrl,
@@ -406,7 +427,6 @@ function createThreeBlock(options) {
                 if (options.modelScale) mesh.scale.setScalar(options.modelScale);
                 scene.add(mesh);
                 fitModelToCamera(mesh, camera);
-                // После загрузки модели можно обновить ссылку на mesh в объекте отладки
                 window[debugName].mesh = mesh;
             },
             undefined,
@@ -428,25 +448,9 @@ function createThreeBlock(options) {
         renderer.setSize(w, h);
         camera.aspect = w / h;
         camera.updateProjectionMatrix();
-        // При изменении размера окна также можно обновить позицию света, если нужно
-        // directionalLight.position.z = camera.position.z / 2; 
     });
 }
 
-// === Примеры вызова ===
-createThreeBlock({
-    containerId: 'three-container-1',
-    rotationSpeed: 0.01,
-    modelUrl: 'https://cdn.jsdelivr.net/gh/thehead-repo/adelt-site@refs/heads/main/aw.glb',
-    modelScale: 1.15,
-});
-
-createThreeBlock({
-    containerId: 'three-container-2',
-    rotationSpeed: 0.01,
-    modelUrl: 'https://cdn.jsdelivr.net/gh/thehead-repo/adelt-site@refs/heads/main/cs.glb',
-    modelScale: 1.3,
-});
 
 
 
@@ -792,6 +796,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
 
 
 
