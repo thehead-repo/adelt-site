@@ -395,7 +395,44 @@ function createThreeBlock(options) {
             err => console.error('Ошибка загрузки модели:', err)
         );
     }
+// === ЛОГ НАСТРОЕК СВЕТА ===
 
+    console.log(
+        `%c Свет — настройки (${options.containerId})`,
+        "color:#5bc0ff; font-size:14px; font-weight:700;"
+    );
+
+    console.table([
+        {
+            light: "AmbientLight",
+            type: ambientLight.type,
+            intensity: ambientLight.intensity,
+            color: ambientLight.color.getHexString(),
+            position: "-"
+        },
+        {
+            light: "DirectionalLight (front)",
+            type: directionalLight.type,
+            intensity: directionalLight.intensity,
+            color: directionalLight.color.getHexString(),
+            position: directionalLight.position.toArray().map(n => n.toFixed(2))
+        },
+        {
+            light: "DirectionalLight (top)",
+            type: anotherLight.type,
+            intensity: anotherLight.intensity,
+            color: anotherLight.color.getHexString(),
+            position: anotherLight.position.toArray().map(n => n.toFixed(2))
+        },
+        {
+            light: "Hemisphere (diffuse)",
+            type: bigDiffuseLight.type,
+            intensity: bigDiffuseLight.intensity,
+            color_sky: bigDiffuseLight.color.getHexString(),
+            color_ground: bigDiffuseLight.groundColor.getHexString(),
+            position: bigDiffuseLight.position.toArray().map(n => n.toFixed(2))
+        }
+    ]);
     // === Live Debug Light Panel ===
 let lastLog = 0;
 function logLights() {
@@ -955,6 +992,7 @@ console.log('Wave 5: Checking IS_MOBILE status...');
     }
     console.log('Wave 5: End of initialization block.');
 });
+
 
 
 
