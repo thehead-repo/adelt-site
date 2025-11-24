@@ -441,6 +441,26 @@ document.addEventListener('DOMContentLoaded', () => {
         if (IS_MOBILE) {
             numLines = numLinesMobile;
         }
+      const isScrollTrackMode = (options.scrollTrackSelector && IS_MOBILE) || options.isDesktopScrollBar;
+const scrollTrackElement = options.scrollTrackSelector ? document.querySelector(options.scrollTrackSelector) : null;
+
+if (scrollTrackElement && (isScrollTrackMode || options.isDesktopScrollBar)) {
+    scrollTrackElement.addEventListener('scroll', () => {
+        if (options.isDesktopScrollBar) {
+            const scrollTop = scrollTrackElement.scrollTop;
+            const scrollHeight = scrollTrackElement.scrollHeight - scrollTrackElement.clientHeight;
+
+            // центр волны = прогресс скролла через центр viewport
+            const progress = (scrollTop + window.innerHeight / 2) / scrollHeight;
+            activeWaveOffset = progress * (isVertical ? height : width);
+        } else {
+            const maxScroll = scrollTrackElement.scrollWidth - scrollTrackElement.clientWidth;
+            const scrollFraction = scrollTrackElement.scrollLeft / maxScroll;
+            activeWaveOffset = width * scrollFraction;
+        }
+    }, { passive: true });
+}
+
         // =========================================================
 
         const baseColor = new THREE.Color(options.baseColor ?? '#8D8D8D');
@@ -671,77 +691,74 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // === Анимация ===
         function animate() {
-            requestAnimationFrame(animate);
-            handleDynamicColor();
+    requestAnimationFrame(animate);
+    handleDynamicColor();
 
-            if (isMobileSwipeMode) {
-                // Плавное движение с инерцией и зацикливанием (без изменений)
-                if (!isTouching) {
-                    totalOffset += velocity;
-                    velocity *= 0.95;
-                    if (Math.abs(velocity) < 0.01) velocity = 0;
-                }
-                
-                lines.forEach(mesh => {
-                    const currentPos = mesh.userData.initialPos + totalOffset;
-                    if (isVertical) {
-                        if (currentPos < -height / 2) mesh.userData.initialPos += totalLinesLength;
-                        else if (currentPos > height / 2) mesh.userData.initialPos -= totalLinesLength;
-                        mesh.position.y = mesh.userData.initialPos + totalOffset;
-                    } else {
-                        if (currentPos < -width / 2) mesh.userData.initialPos += totalLinesLength;
-                        else if (currentPos > width / 2) mesh.userData.initialPos -= totalLinesLength;
-                        mesh.position.x = mesh.userData.initialPos + totalOffset;
-                    }
-                });
-                updateWave(activeWavePosition);
-                
-            } else if (isMobileSwipeStepMode) {
-                // === Плавное движение к целевому офсету и зацикливание (Обновлено) ===
-                
-                // 1. Плавное движение к targetOffset
-                totalOffset += (targetOffset - totalOffset) * STEP_SMOOTHING;
+    if (isMobileSwipeMode) {
+        // Плавное движение с инерцией и зацикливанием
+        if (!isTouching) {
+            totalOffset += velocity;
+            velocity *= 0.95;
+            if (Math.abs(velocity) < 0.01) velocity = 0;
+        }
+        
+        lines.forEach(mesh => {
+            const currentPos = mesh.userData.initialPos + totalOffset;
+            if (isVertical) {
+                if (currentPos < -height / 2) mesh.userData.initialPos += totalLinesLength;
+                else if (currentPos > height / 2) mesh.userData.initialPos -= totalLinesLength;
+                mesh.position.y = mesh.userData.initialPos + totalOffset;
+            } else {
+                if (currentPos < -width / 2) mesh.userData.initialPos += totalLinesLength;
+                else if (currentPos > width / 2) mesh.userData.initialPos -= totalLinesLength;
+                mesh.position.x = mesh.userData.initialPos + totalOffset;
+            }
+        });
+        updateWave(activeWavePosition);
+        
+    } else if (isMobileSwipeStepMode) {
+        // Плавное движение к целевому офсету и зацикливание
+        totalOffset += (targetOffset - totalOffset) * STEP_SMOOTHING;
 
-                // 2. Логика зацикливания
-                lines.forEach(mesh => {
-                    const currentPos = mesh.userData.initialPos + totalOffset;
-                    
-                    if (isVertical) {
-                        if (currentPos < -height / 2) mesh.userData.initialPos += totalLinesLength;
-                        else if (currentPos > height / 2) mesh.userData.initialPos -= totalLinesLength;
-                        mesh.position.y = mesh.userData.initialPos + totalOffset;
-                    } else {
-                        if (currentPos < -width / 2) mesh.userData.initialPos += totalLinesLength;
-                        else if (currentPos > width / 2) mesh.userData.initialPos -= totalLinesLength;
-                        mesh.position.x = mesh.userData.initialPos + totalOffset;
-                    }
-                });
-                
-                updateWave(activeWavePosition);
-                
-            } else if (isScrollTrackMode) {
-                // Скролл-трек (Волны 3, 4) - только движение линий
-                totalOffset = 0; // Линии не двигаются, только активная точка
-                
-                lines.forEach(mesh => {
-                    if (isVertical) {
-                        mesh.position.y = mesh.userData.initialPos + totalOffset;
-                    } else {
-                        mesh.position.x = mesh.userData.initialPos + totalOffset;
-                    }
-                });
+        lines.forEach(mesh => {
+            const currentPos = mesh.userData.initialPos + totalOffset;
+            
+            if (isVertical) {
+                if (currentPos < -height / 2) mesh.userData.initialPos += totalLinesLength;
+                else if (currentPos > height / 2) mesh.userData.initialPos -= totalLinesLength;
+                mesh.position.y = mesh.userData.initialPos + totalOffset;
+            } else {
+                if (currentPos < -width / 2) mesh.userData.initialPos += totalLinesLength;
+                else if (currentPos > width / 2) mesh.userData.initialPos -= totalLinesLength;
+                mesh.position.x = mesh.userData.initialPos + totalOffset;
+            }
+        });
+        
+        updateWave(activeWavePosition);
+        
+    } else if (isScrollTrackMode || options.isDesktopScrollBar) {
+        // Скролл-трек или десктопный прогресс-бар
+        lines.forEach(mesh => {
+            if (isVertical) {
+                mesh.position.y = mesh.userData.initialPos + totalOffset;
+            } else {
+                mesh.position.x = mesh.userData.initialPos + totalOffset;
+            }
+        });
 
-                updateWave(activeWaveOffset);
-            }
-            else {
-                // Режим движения по мышке (по умолчанию, без изменений)
-                currentPos += (targetPos - currentPos) * smoothing;
-                updateWave(currentPos);
-            }
+        // Для прогресс-бара: activeWaveOffset уже обновляется в обработчике scroll
+        updateWave(activeWaveOffset);
 
-            renderer.render(scene, camera);
-        }
-        animate();
+    } else {
+        // Режим движения по мышке (по умолчанию, только если это не wave4 десктоп)
+        currentPos += (targetPos - currentPos) * smoothing;
+        updateWave(currentPos);
+    }
+
+    renderer.render(scene, camera);
+}
+
+animate();
 
         // === Остальной код (без изменений) ===
         if (!IS_MOBILE && options.dynamicColorWithCards) { 
@@ -866,39 +883,13 @@ document.addEventListener('DOMContentLoaded', () => {
         wave4Options.waveInfluenceRatio = 0.08; // Как у wave3
         wave4Options.activeWavePosition = 0.115; // Как у wave3
     }
-    // ========================================================
-    if (!IS_MOBILE) {
-    const target = document.querySelector('#scroll-track2');
-
-    function updateWave4ScrollProgress() {
-        if (!target) return;
-
-        const rect = target.getBoundingClientRect();
-        const vh = window.innerHeight;
-
-        if (rect.bottom < 0) {
-            uniformsWave4.u_progress.value = 0;
-            return;
-        }
-
-        if (rect.top > vh) {
-            uniformsWave4.u_progress.value = 1;
-            return;
-        }
-
-        const total = rect.height + vh;
-        const passed = vh - rect.top;
-
-        let progress = passed / total;
-        progress = Math.min(Math.max(progress, 0), 1);
-
-        uniformsWave4.u_progress.value = progress;
-    }
-
-    window.addEventListener('scroll', updateWave4ScrollProgress);
-    window.addEventListener('resize', updateWave4ScrollProgress);
-    updateWave4ScrollProgress();
+    
+    // === Логика десктопного прогресс-бара ===
+if (!IS_MOBILE) {
+    wave4Options.isDesktopScrollBar = true; // кастомный флаг для прогресс-бара
 }
+  
+ 
     createThreeWave('#wave4-wrapper', '#wave4-height-container', wave4Options);
 
 console.log('Wave 5: Checking IS_MOBILE status...');
@@ -919,6 +910,7 @@ console.log('Wave 5: Checking IS_MOBILE status...');
     }
     console.log('Wave 5: End of initialization block.');
 });
+
 
 
 
