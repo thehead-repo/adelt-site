@@ -311,35 +311,6 @@ function animate() {
  // ========================================================================================================
  // === THREE.JS AWARDS ===
  // ========================================================================================================
-
-// ==============================================
-// Глобальное хранилище общих настроек света
-// ==============================================
-const LightStore = {
-    ambient: { intensity: 2, color: 0x404040 },
-
-    directionalMain: { x: 0, y: 0, z: 50, intensity: 2 },
-
-    directionalTop: { x: 0, y: 10, z: 0, intensity: 1 },
-
-    diffuse: {
-        x: 0, y: 50, z: 100,
-        intensity: 1.2,
-        sky: 0xffffff,
-        ground: 0x444444
-    },
-
-    // Все сцены подпишутся сюда
-    subscribers: [],
-
-    notify() {
-        this.subscribers.forEach(fn => fn());
-    }
-};
-
-// ==============================================
-// Создание блока Three.js
-// ==============================================
 function createThreeBlock(options) {
     const container = document.getElementById(options.containerId);
     if (!container) return;
@@ -350,7 +321,7 @@ function createThreeBlock(options) {
 
     // === Сцена ===
     const scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(0xffffff, 10, 1000);
+    scene.fog = new THREE.Fog(0xffffff, 10, 1000); 
 
     // === Камера ===
     const camera = new THREE.PerspectiveCamera(30, width / height, 0.1, 1000);
@@ -365,60 +336,41 @@ function createThreeBlock(options) {
 
     container.appendChild(renderer.domElement);
 
-    // =================================
     // === Источники света ===
-    // =================================
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1);
+    const ambientLight = new THREE.AmbientLight(0x404040, 2);
     scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
+    directionalLight.position.set(3, -7, 5);
     scene.add(directionalLight);
 
     const anotherLight = new THREE.DirectionalLight(0xffffff, 1);
+    anotherLight.position.set(-5, 3.5, 2);
     scene.add(anotherLight);
 
-    const bigDiffuseLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
-    scene.add(bigDiffuseLight);
-
-    // === Применяем глобальные настройки света ===
-    function applySharedLightSettings() {
-        // ambient
-        ambientLight.intensity = LightStore.ambient.intensity;
-        ambientLight.color.setHex(LightStore.ambient.color);
-
-        // main directional
-        directionalLight.intensity = LightStore.directionalMain.intensity;
-        directionalLight.position.set(
-            LightStore.directionalMain.x,
-            LightStore.directionalMain.y,
-            LightStore.directionalMain.z
-        );
-
-        // top directional
-        anotherLight.intensity = LightStore.directionalTop.intensity;
-        anotherLight.position.set(
-            LightStore.directionalTop.x,
-            LightStore.directionalTop.y,
-            LightStore.directionalTop.z
-        );
-
-        // big diffuse
-        bigDiffuseLight.intensity = LightStore.diffuse.intensity;
-        bigDiffuseLight.color.setHex(LightStore.diffuse.sky);
-        bigDiffuseLight.groundColor.setHex(LightStore.diffuse.ground);
-        bigDiffuseLight.position.set(
-            LightStore.diffuse.x,
-            LightStore.diffuse.y,
-            LightStore.diffuse.z
-        );
+    // === Лайв-лог в консоль ===
+    function logLightSettings() {
+        console.log(`🟦 LIGHT SETTINGS for ${options.containerId}`);
+        console.log("• ambientLight:", {
+            color: ambientLight.color.getHexString(),
+            intensity: ambientLight.intensity,
+        });
+        console.log("• directionalLight:", {
+            color: directionalLight.color.getHexString(),
+            intensity: directionalLight.intensity,
+            position: directionalLight.position,
+        });
+        console.log("• anotherLight:", {
+            color: anotherLight.color.getHexString(),
+            intensity: anotherLight.intensity,
+            position: anotherLight.position,
+        });
+        console.log("• camera:", camera.position);
+        console.log("• renderer toneMappingExposure:", renderer.toneMappingExposure);
+        console.log("----------------------------------------------------");
     }
 
-    applySharedLightSettings();
-    LightStore.subscribers.push(applySharedLightSettings);
-
-    // =================================
     // === Модель ===
-    // =================================
     let mesh = null;
 
     function fitModelToCamera(mesh, camera, offset = 1.6) {
@@ -438,6 +390,9 @@ function createThreeBlock(options) {
         camera.lookAt(0, 0, 0);
 
         directionalLight.position.z = cameraDistance / 2;
+
+        // Лог после позиционирования
+        logLightSettings();
     }
 
     if (options.modelUrl) {
@@ -449,68 +404,33 @@ function createThreeBlock(options) {
                 if (options.modelScale) mesh.scale.setScalar(options.modelScale);
                 scene.add(mesh);
                 fitModelToCamera(mesh, camera);
+
+                // Положим в window для live-редактирования
+                window[`three_${options.containerId}`] = {
+                    scene,
+                    camera,
+                    renderer,
+                    ambientLight,
+                    directionalLight,
+                    anotherLight,
+                    mesh,
+                };
+
+                console.log(`🟩 THREE LIVE CONTROLS: window.three_${options.containerId}`);
             },
             undefined,
-            err => console.error("Ошибка загрузки модели:", err)
+            err => console.error('Ошибка загрузки модели:', err)
         );
     }
 
-    // =================================
-    // === Live log света ===
-    // =================================
-    let lastLog = 0;
-    function logLights() {
-        const now = performance.now();
-        if (now - lastLog > 200) { // обновление 5 раз в секунду
-            console.clear();
-            console.table({
-                AmbientLight: {
-                    intensity: ambientLight.intensity,
-                    color: ambientLight.color.getHexString()
-                },
-                DirectionalMain: {
-                    intensity: directionalLight.intensity,
-                    x: directionalLight.position.x,
-                    y: directionalLight.position.y,
-                    z: directionalLight.position.z
-                },
-                DirectionalTop: {
-                    intensity: anotherLight.intensity,
-                    x: anotherLight.position.x,
-                    y: anotherLight.position.y,
-                    z: anotherLight.position.z
-                },
-                BigDiffuseLight: {
-                    intensity: bigDiffuseLight.intensity,
-                    x: bigDiffuseLight.position.x,
-                    y: bigDiffuseLight.position.y,
-                    z: bigDiffuseLight.position.z,
-                    skyColor: bigDiffuseLight.color.getHexString(),
-                    groundColor: bigDiffuseLight.groundColor.getHexString()
-                }
-            });
-            lastLog = now;
-        }
-    }
-
-    // =================================
-    // === Анимация ===
-    // =================================
     function animate() {
         requestAnimationFrame(animate);
         if (mesh) mesh.rotation.y += options.rotationSpeed ?? 0.01;
-
-        // live log
-        logLights();
-
         renderer.render(scene, camera);
     }
     animate();
 
-    // =================================
-    // === Resize ===
-    // =================================
-    window.addEventListener("resize", () => {
+    window.addEventListener('resize', () => {
         const rect = container.getBoundingClientRect();
         const w = rect.width * ((options.sizePercent?.width ?? 100) / 100);
         const h = rect.height * ((options.sizePercent?.height ?? 100) / 100);
@@ -519,23 +439,6 @@ function createThreeBlock(options) {
         camera.updateProjectionMatrix();
     });
 }
-
-// ==============================================
-// === Вызов двух сцен ===
-createThreeBlock({
-    containerId: "three-container-1",
-    rotationSpeed: 0.0075,
-    modelUrl: "https://cdn.jsdelivr.net/gh/thehead-repo/adelt-site@refs/heads/main/aw.glb",
-    modelScale: 1.15
-});
-
-createThreeBlock({
-    containerId: "three-container-2",
-    rotationSpeed: 0.0075,
-    modelUrl: "https://cdn.jsdelivr.net/gh/thehead-repo/adelt-site@refs/heads/main/cs.glb",
-    modelScale: 1.3
-});
-
 
 // === Примеры вызова ===
 createThreeBlock({
@@ -1040,6 +943,7 @@ console.log('Wave 5: Checking IS_MOBILE status...');
     }
     console.log('Wave 5: End of initialization block.');
 });
+
 
 
 
