@@ -342,11 +342,11 @@ function createThreeBlock(options) {
     scene.add(ambientLight);
 
     const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
-    directionalLight.position.set(0, 0, 50);
+    directionalLight.position.set(3, -7, 5);
     scene.add(directionalLight);
 
     const anotherLight = new THREE.DirectionalLight(0xffffff, 1);
-    anotherLight.position.set(0, 10, 0);
+    anotherLight.position.set(-5, 3.5, 2);
     scene.add(anotherLight);
 
     // === Лайв-лог в консоль ===
@@ -444,14 +444,14 @@ function createThreeBlock(options) {
 // === Примеры вызова ===
 createThreeBlock({
     containerId: 'three-container-1',
-    rotationSpeed: 0.01,
+    rotationSpeed: 0.005,
     modelUrl: 'https://cdn.jsdelivr.net/gh/thehead-repo/adelt-site@refs/heads/main/aw.glb',
     modelScale: 1.15,
 });
 
 createThreeBlock({
     containerId: 'three-container-2',
-    rotationSpeed: 0.01,
+    rotationSpeed: 0.005,
     modelUrl: 'https://cdn.jsdelivr.net/gh/thehead-repo/adelt-site@refs/heads/main/cs.glb',
     modelScale: 1.3,
 });
@@ -944,3 +944,4 @@ console.log('Wave 5: Checking IS_MOBILE status...');
     }
     console.log('Wave 5: End of initialization block.');
 });
+
