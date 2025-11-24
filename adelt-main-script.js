@@ -867,7 +867,38 @@ document.addEventListener('DOMContentLoaded', () => {
         wave4Options.activeWavePosition = 0.115; // Как у wave3
     }
     // ========================================================
-    
+    if (!IS_MOBILE) {
+    const target = document.querySelector('#scroll-track2');
+
+    function updateWave4ScrollProgress() {
+        if (!target) return;
+
+        const rect = target.getBoundingClientRect();
+        const vh = window.innerHeight;
+
+        if (rect.bottom < 0) {
+            uniformsWave4.u_progress.value = 0;
+            return;
+        }
+
+        if (rect.top > vh) {
+            uniformsWave4.u_progress.value = 1;
+            return;
+        }
+
+        const total = rect.height + vh;
+        const passed = vh - rect.top;
+
+        let progress = passed / total;
+        progress = Math.min(Math.max(progress, 0), 1);
+
+        uniformsWave4.u_progress.value = progress;
+    }
+
+    window.addEventListener('scroll', updateWave4ScrollProgress);
+    window.addEventListener('resize', updateWave4ScrollProgress);
+    updateWave4ScrollProgress();
+}
     createThreeWave('#wave4-wrapper', '#wave4-height-container', wave4Options);
 
 console.log('Wave 5: Checking IS_MOBILE status...');
@@ -888,6 +919,7 @@ console.log('Wave 5: Checking IS_MOBILE status...');
     }
     console.log('Wave 5: End of initialization block.');
 });
+
 
 
 
