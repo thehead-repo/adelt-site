@@ -323,16 +323,38 @@ function createThreeBlock(options) {
 
     // === Сцена, камера, рендерер ===
     const scene = new THREE.Scene();
+    // Добавим немного тумана для глубины
+    scene.fog = new THREE.Fog(0xffffff, 10, 1000); 
+
     const camera = new THREE.PerspectiveCamera(30, width / height, 0.1, 1000);
 
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(width, height);
+    // Настройки для корректного отображения PBR материалов
     renderer.outputEncoding = THREE.sRGBEncoding;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
 
     container.appendChild(renderer.domElement);
+
+    // === Источник света ===
+    // Добавляем мягкий рассеянный свет, который освещает все объекты равномерно
+    const ambientLight = new THREE.AmbientLight(0x404040, 2); // Мягкий белый свет с интенсивностью 2
+    scene.add(ambientLight);
+
+    // Добавляем направленный свет перед моделью
+    // Цвет (0xffffff), Интенсивность (2)
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
+    // Позиционируем свет перед камерой, чтобы он светил на модель
+    directionalLight.position.set(0, 0, 50); 
+    scene.add(directionalLight);
+
+    // Добавляем дополнительный свет сверху
+    const anotherLight = new THREE.DirectionalLight(0xffffff, 1);
+    anotherLight.position.set(0, 10, 0); 
+    scene.add(anotherLight);
+
 
     // === Модель ===
     let mesh = null;
@@ -352,9 +374,13 @@ function createThreeBlock(options) {
 
         camera.position.set(0, 0, cameraDistance);
         camera.lookAt(0, 0, 0);
+        
+        // Перемещаем источник направленного света ближе к модели после ее размещения
+        directionalLight.position.z = cameraDistance / 2;
     }
 
     if (options.modelUrl) {
+        // Убедитесь, что THREE.GLTFLoader доступен (подключен через <script> или импортирован)
         const loader = new THREE.GLTFLoader();
         loader.load(
             options.modelUrl,
@@ -383,6 +409,8 @@ function createThreeBlock(options) {
         renderer.setSize(w, h);
         camera.aspect = w / h;
         camera.updateProjectionMatrix();
+        // При изменении размера окна также можно обновить позицию света, если нужно
+        // directionalLight.position.z = camera.position.z / 2; 
     });
 }
 
@@ -744,6 +772,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
 
 
 
