@@ -430,27 +430,26 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!wrapper || !container) return null;
 
         const isVertical = options.direction === 'vertical';
+
         let numLines = options.numLines ?? 100;
         const numLinesMobile = options.numLinesMobile ?? numLines;
-
         if (IS_MOBILE) numLines = numLinesMobile;
 
-        const isMobileSwipeStepMode = options.isMobileSwipeStepMode ?? false;
+        // === Разделяем переменные для каждой волны ===
+        const isMobileSwipeStepMode = options.isMobileSwipeStepMode ?? false; 
         const isMobileSwipeMode = (options.isMobileSwipeMode ?? IS_MOBILE) && !isMobileSwipeStepMode;
-        const isScrollTrackMode = (options.scrollTrackSelector && IS_MOBILE) || options.isDesktopScrollBar;
-        const scrollTrackElement = (options.scrollTrackSelector) ? document.querySelector(options.scrollTrackSelector) : null;
+        const scrollTrackElement = options.scrollTrackSelector ? document.querySelector(options.scrollTrackSelector) : null;
+        const isScrollTrackMode = (scrollTrackElement && IS_MOBILE) || options.isDesktopScrollBar;
 
         const baseColor = new THREE.Color(options.baseColor ?? '#8D8D8D');
         let waveTargetColor = new THREE.Color(options.waveActiveColor ?? '#ff661a');
+
         const baseRatio = options.baseRatio ?? 0.1;
         const waveRatio = options.waveRatio ?? 0.4;
         const smoothing = options.smoothing ?? 0.1;
         const waveInfluenceRatio = options.waveInfluenceRatio ?? 0.05; 
         const lineThickness = options.lineThickness ?? 1;
         const centerSelector = options.centerSelector ? document.querySelector(options.centerSelector) : null;
-
-        const swipeVelocity = options.swipeVelocity ?? 0.5;
-        const activeWavePosition = options.activeWavePosition ?? 0.5;
 
         let width = container.offsetWidth;
         let height = container.offsetHeight;
@@ -485,6 +484,7 @@ document.addEventListener('DOMContentLoaded', () => {
             );
             const material = new THREE.MeshBasicMaterial({ color: baseColor });
             const mesh = new THREE.Mesh(geometry, material);
+
             const offset = i * segmentLength;
             if (isVertical) {
                 mesh.userData.initialPos = offset - height / 2;
@@ -504,19 +504,19 @@ document.addEventListener('DOMContentLoaded', () => {
         let currentPos = targetPos;
         let totalOffset = 0;
         let targetOffset = 0;
-        let activeWaveOffset = width * activeWavePosition;
+        let activeWaveOffset = width * (options.activeWavePosition ?? 0.5); 
         let velocity = 0;
         let isTouching = false;
         let lastTouchPos = 0;
-        let startTouchPos = 0;
+        let startTouchPos = 0; 
 
-        const setTotalOffset = (newOffset) => targetOffset = newOffset;
+        const setTotalOffset = (newOffset) => { targetOffset = newOffset; };
 
         function updateWave(center) {
             const influenceCenter = isMobileSwipeMode
-                ? (isVertical ? height : width) * activeWavePosition
+                ? (isVertical ? height : width) * (options.activeWavePosition ?? 0.5)
                 : isMobileSwipeStepMode
-                    ? (isVertical ? height : width) * activeWavePosition
+                    ? (isVertical ? height : width) * (options.activeWavePosition ?? 0.5)
                     : isScrollTrackMode
                         ? activeWaveOffset
                         : center;
@@ -524,18 +524,20 @@ document.addEventListener('DOMContentLoaded', () => {
             lines.forEach(mesh => {
                 const pos = isVertical ? mesh.position.y + height / 2 : mesh.position.x + width / 2;
                 const dist = Math.abs(pos - influenceCenter);
-                const influence = Math.max(0, 1 - dist / (totalLength * waveInfluenceRatio));
+                const influence = Math.max(0, 1 - dist / (totalLength * waveInfluenceRatio)); 
                 const scale = baseRatio + (waveRatio - baseRatio) * influence;
 
-                if (isVertical) mesh.scale.x += (scale / baseRatio - mesh.scale.x) * smoothing;
-                else mesh.scale.y += (scale / baseRatio - mesh.scale.y) * smoothing;
-
+                if (isVertical) {
+                    mesh.scale.x += (scale / baseRatio - mesh.scale.x) * smoothing;
+                } else {
+                    mesh.scale.y += (scale / baseRatio - mesh.scale.y) * smoothing;
+                }
                 mesh.material.color.lerpColors(baseColor, waveTargetColor, influence);
             });
 
             if (centerSelector && !isVertical) {
                 const isDrivenByOffset = isMobileSwipeMode || isMobileSwipeStepMode;
-                const centerForElement = isScrollTrackMode ? activeWaveOffset : isDrivenByOffset ? wrapper.offsetWidth * activeWavePosition : currentPos;
+                const centerForElement = isScrollTrackMode ? activeWaveOffset : isDrivenByOffset ? wrapper.offsetWidth * (options.activeWavePosition ?? 0.5) : currentPos;
                 const blockWidth = centerSelector.offsetWidth;
                 let newLeft = centerForElement - blockWidth / 2;
                 newLeft = Math.max(0, Math.min(wrapper.offsetWidth - blockWidth, newLeft));
@@ -546,37 +548,25 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // ==============================
-        // === Слушатели тач/свайп ===
-        // ==============================
+        // === Слушатели ===
         if (isMobileSwipeMode) {
             const primaryAxis = isVertical ? 'clientY' : 'clientX';
             wrapper.addEventListener('touchstart', e => {
-                if (e.touches.length === 1) {
-                    isTouching = true;
-                    lastTouchPos = e.touches[0][primaryAxis];
-                    velocity = 0;
-                }
+                if (e.touches.length === 1) { isTouching = true; lastTouchPos = e.touches[0][primaryAxis]; velocity = 0; }
             }, { passive: true });
             wrapper.addEventListener('touchmove', e => {
                 if (!isTouching || e.touches.length !== 1) return;
                 const currentTouchPos = e.touches[0][primaryAxis];
                 const delta = currentTouchPos - lastTouchPos;
-                totalOffset += (isVertical ? -delta : delta) * swipeVelocity;
+                totalOffset += (isVertical ? -delta : delta) * (options.swipeVelocity ?? 0.5);
                 lastTouchPos = currentTouchPos;
             }, { passive: true });
             wrapper.addEventListener('touchend', () => { isTouching = false; });
         } else if (isMobileSwipeStepMode) {
             const primaryAxis = 'clientX';
-            wrapper.addEventListener('touchstart', e => {
-                if (e.touches.length === 1) {
-                    startTouchPos = e.touches[0][primaryAxis];
-                    isTouching = true;
-                }
-            }, { passive: true });
+            wrapper.addEventListener('touchstart', e => { if (e.touches.length === 1) { startTouchPos = e.touches[0][primaryAxis]; isTouching = true; } }, { passive: true });
             wrapper.addEventListener('touchend', e => {
-                if (!isTouching) return;
-                isTouching = false;
+                if (!isTouching) return; isTouching = false;
                 const endTouchPos = e.changedTouches ? e.changedTouches[0][primaryAxis] : 0;
                 const delta = endTouchPos - startTouchPos;
                 if (Math.abs(delta) > SWIPE_THRESHOLD) {
@@ -599,9 +589,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             wrapper.addEventListener('mousemove', e => {
                 const rect = wrapper.getBoundingClientRect();
-                targetPos = isVertical
-                    ? rect.height - (e.clientY - rect.top)
-                    : e.clientX - rect.left;
+                targetPos = isVertical ? rect.height - (e.clientY - rect.top) : e.clientX - rect.left;
             });
         }
 
@@ -614,11 +602,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const activePreview = document.querySelector('.w-slide .case_preview.active');
             if (activePreview) {
                 const activeWrap = activePreview.closest('.case_preview_wrap');
-                if (activeWrap && activeWrap.hasAttribute('data-wave-white')) {
-                    waveTargetColor = new THREE.Color('#ffffff');
-                } else {
-                    waveTargetColor = new THREE.Color('#44403F');
-                }
+                waveTargetColor = (activeWrap && activeWrap.hasAttribute('data-wave-white')) ? new THREE.Color('#ffffff') : new THREE.Color('#44403F');
             }
         }
 
@@ -627,11 +611,7 @@ document.addEventListener('DOMContentLoaded', () => {
             handleDynamicColor();
 
             if (isMobileSwipeMode) {
-                if (!isTouching) {
-                    totalOffset += velocity;
-                    velocity *= 0.95;
-                    if (Math.abs(velocity) < 0.01) velocity = 0;
-                }
+                if (!isTouching) { totalOffset += velocity; velocity *= 0.95; if (Math.abs(velocity) < 0.01) velocity = 0; }
                 lines.forEach(mesh => {
                     const currentPos = mesh.userData.initialPos + totalOffset;
                     if (isVertical) {
@@ -644,7 +624,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         mesh.position.x = mesh.userData.initialPos + totalOffset;
                     }
                 });
-                updateWave(activeWavePosition);
+                updateWave(options.activeWavePosition ?? 0.5);
             } else if (isMobileSwipeStepMode) {
                 totalOffset += (targetOffset - totalOffset) * STEP_SMOOTHING;
                 lines.forEach(mesh => {
@@ -659,7 +639,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         mesh.position.x = mesh.userData.initialPos + totalOffset;
                     }
                 });
-                updateWave(activeWavePosition);
+                updateWave(options.activeWavePosition ?? 0.5);
             } else if (isScrollTrackMode || options.isDesktopScrollBar) {
                 lines.forEach(mesh => {
                     if (isVertical) mesh.position.y = mesh.userData.initialPos + totalOffset;
@@ -684,24 +664,24 @@ document.addEventListener('DOMContentLoaded', () => {
             camera.top = height / 2;
             camera.bottom = height / -2;
             camera.updateProjectionMatrix();
+
             if (isScrollTrackMode && scrollTrackElement) {
-                const maxScroll = isVertical
-                    ? scrollTrackElement.scrollHeight - scrollTrackElement.clientHeight
-                    : scrollTrackElement.scrollWidth - scrollTrackElement.clientWidth;
-                const scrollFraction = isVertical
-                    ? scrollTrackElement.scrollTop / maxScroll
-                    : scrollTrackElement.scrollLeft / maxScroll;
-                activeWaveOffset = (isVertical ? height : width) * scrollFraction;
+                if (!isVertical) {
+                    const maxScroll = scrollTrackElement.scrollWidth - scrollTrackElement.clientWidth;
+                    const scrollFraction = scrollTrackElement.scrollLeft / maxScroll;
+                    activeWaveOffset = width * scrollFraction;
+                } else {
+                    const maxScroll = scrollTrackElement.scrollHeight - scrollTrackElement.clientHeight;
+                    const scrollFraction = scrollTrackElement.scrollTop / maxScroll;
+                    activeWaveOffset = height * scrollFraction;
+                }
             }
         });
 
         return { renderer, scene, camera, setTotalOffset };
     }
 
-    // ================================
     // === Инициализация всех волн ===
-    // ================================
-    
     createThreeWave('.wave-wrapper', '.wave-height-container', {
         direction: 'horizontal',
         dynamicColorWithCards: true,
@@ -729,8 +709,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const wave4Options = {
-        direction: IS_MOBILE ? 'horizontal' : 'vertical',
-        numLines: IS_MOBILE ? 55 : 65,
+        direction: 'vertical',
+        numLines: 65,
         numLinesMobile: 40,
         scrollTrackSelector: '#scroll-track2',
         baseColor: '#D3D3D3',
@@ -738,10 +718,19 @@ document.addEventListener('DOMContentLoaded', () => {
         baseRatio: 0.1,
         waveRatio: 0.35,
         lineThickness: 1,
-        waveInfluenceRatio: IS_MOBILE ? 0.08 : 0.06,
-        activeWavePosition: IS_MOBILE ? 0.115 : undefined,
-        isDesktopScrollBar: !IS_MOBILE
+        waveInfluenceRatio: 0.06
     };
+
+    if (IS_MOBILE) {
+        wave4Options.direction = 'horizontal';
+        wave4Options.numLines = 55;
+        wave4Options.numLinesMobile = 40;
+        wave4Options.waveInfluenceRatio = 0.08;
+        wave4Options.activeWavePosition = 0.115;
+    }
+
+    if (!IS_MOBILE) wave4Options.isDesktopScrollBar = true;
+
     createThreeWave('#wave4-wrapper', '#wave4-height-container', wave4Options);
 
     if (!IS_MOBILE) {
@@ -754,8 +743,9 @@ document.addEventListener('DOMContentLoaded', () => {
             activeWavePosition: 0.5
         });
     }
-
 });
+
+
 
 
 
