@@ -313,75 +313,89 @@ function animate() {
  // === THREE.JS AWARDS ===
  // ========================================================================================================
 
-function createThreeBlock(options) {
-    const container = document.getElementById(options.containerId);
-    if (!container) return;
+(function() {
+    // Утилита для safeName (чтобы можно было обращаться через window.safeName)
+    function toSafeName(str) {
+      return ('threeBlock_' + str).replace(/[^A-Za-z0-9_]/g, '_');
+    }
 
-    const rect = container.getBoundingClientRect();
-    const width = rect.width * ((options.sizePercent?.width ?? 100) / 100);
-    const height = rect.height * ((options.sizePercent?.height ?? 100) / 100);
+    function createThreeBlock(options) {
+      const container = document.getElementById(options.containerId);
+      if (!container) return;
 
-    // === Сцена, камера, рендерер ===
-    const scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(0xffffff, 10, 1000);
+      // размеры контейнера
+      const rect = container.getBoundingClientRect();
+      const width = Math.max(1, rect.width * ((options.sizePercent?.width ?? 100) / 100));
+      const height = Math.max(1, rect.height * ((options.sizePercent?.height ?? 100) / 100));
 
-    const camera = new THREE.PerspectiveCamera(30, width / height, 0.1, 1000);
+      // сцена, камера, рендер
+      const scene = new THREE.Scene();
+      scene.fog = new THREE.Fog(0xffffff, 10, 1000);
 
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(width, height);
-    renderer.outputEncoding = THREE.sRGBEncoding;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.0;
+      const camera = new THREE.PerspectiveCamera(30, width / height, 0.1, 1000);
 
-    container.appendChild(renderer.domElement);
+      const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+      renderer.setPixelRatio(window.devicePixelRatio || 1);
+      renderer.setSize(width, height);
+      renderer.outputEncoding = THREE.sRGBEncoding;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.0;
+      container.appendChild(renderer.domElement);
 
-    // === Свет ===
-    const ambientLight = new THREE.AmbientLight(0x404040, 2);
-    scene.add(ambientLight);
+      // Сброс на прозрачный фон чтобы лэйаут был корректен
+      renderer.setClearColor(0x000000, 0); // alpha 0
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
-    directionalLight.position.set(0, 0, 50);
-    scene.add(directionalLight);
+      // === Свет ===
+      const ambientLight = new THREE.AmbientLight(0xffffff, options.ambientIntensity ?? 1.2);
+      scene.add(ambientLight);
 
-    const anotherLight = new THREE.DirectionalLight(0xffffff, 1);
-    anotherLight.position.set(0, 10, 0);
-    scene.add(anotherLight);
+      const directionalLight = new THREE.DirectionalLight(0xffffff, options.directionalIntensity ?? 2.0);
+      directionalLight.position.set(0, 0, 50);
+      directionalLight.target.position.set(0,0,0);
+      scene.add(directionalLight);
+      scene.add(directionalLight.target);
 
+      const anotherLight = new THREE.DirectionalLight(0xffffff, options.anotherIntensity ?? 1.0);
+      anotherLight.position.set(0, 10, 0);
+      anotherLight.target.position.set(0,0,0);
+      scene.add(anotherLight);
+      scene.add(anotherLight.target);
 
-    // === GUI ===
-    const gui = new lil.GUI({ title: `Lights: ${options.containerId}`, width: 300 });
+      // === GUI (lil-gui) ===
+      const gui = new lil.GUI({ title: `Lights: ${options.containerId}`, width: 300 });
 
-    // Папка Ambient
-    const ambientFolder = gui.addFolder("Ambient Light");
-    ambientFolder.add(ambientLight, "intensity", 0, 10, 0.01);
-    ambientFolder.addColor({ color: ambientLight.color.getHex() }, "color")
-        .onChange(v => ambientLight.color.set(v));
+      // Ambient
+      const ambientFolder = gui.addFolder('Ambient Light');
+      ambientFolder.add(ambientLight, 'intensity', 0, 10, 0.01).onChange(() => requestRender());
+      ambientFolder.addColor({ color: ambientLight.color.getHex() }, 'color')
+        .onChange(v => { ambientLight.color.set(v); requestRender(); });
 
-    // Папка Directional 1
-    const dir1Folder = gui.addFolder("Directional Light 1");
-    dir1Folder.add(directionalLight, "intensity", 0, 10, 0.01);
-    dir1Folder.addColor({ color: directionalLight.color.getHex() }, "color")
-        .onChange(v => directionalLight.color.set(v));
-    dir1Folder.add(directionalLight.position, "x", -100, 100, 0.1);
-    dir1Folder.add(directionalLight.position, "y", -100, 100, 0.1);
-    dir1Folder.add(directionalLight.position, "z", -100, 100, 0.1);
+      // Directional 1
+      const dir1Folder = gui.addFolder('Directional Light 1');
+      dir1Folder.add(directionalLight, 'intensity', 0, 10, 0.01).onChange(() => requestRender());
+      dir1Folder.addColor({ color: directionalLight.color.getHex() }, 'color')
+        .onChange(v => { directionalLight.color.set(v); requestRender(); });
+      dir1Folder.add(directionalLight.position, 'x', -200, 200, 0.1).onChange(() => requestRender());
+      dir1Folder.add(directionalLight.position, 'y', -200, 200, 0.1).onChange(() => requestRender());
+      dir1Folder.add(directionalLight.position, 'z', -200, 200, 0.1).onChange(() => requestRender());
 
-    // Папка Directional 2
-    const dir2Folder = gui.addFolder("Directional Light 2");
-    dir2Folder.add(anotherLight, "intensity", 0, 10, 0.01);
-    dir2Folder.addColor({ color: anotherLight.color.getHex() }, "color")
-        .onChange(v => anotherLight.color.set(v));
-    dir2Folder.add(anotherLight.position, "x", -100, 100, 0.1);
-    dir2Folder.add(anotherLight.position, "y", -100, 100, 0.1);
-    dir2Folder.add(anotherLight.position, "z", -100, 100, 0.1);
+      // Directional 2
+      const dir2Folder = gui.addFolder('Directional Light 2');
+      dir2Folder.add(anotherLight, 'intensity', 0, 10, 0.01).onChange(() => requestRender());
+      dir2Folder.addColor({ color: anotherLight.color.getHex() }, 'color')
+        .onChange(v => { anotherLight.color.set(v); requestRender(); });
+      dir2Folder.add(anotherLight.position, 'x', -200, 200, 0.1).onChange(() => requestRender());
+      dir2Folder.add(anotherLight.position, 'y', -200, 200, 0.1).onChange(() => requestRender());
+      dir2Folder.add(anotherLight.position, 'z', -200, 200, 0.1).onChange(() => requestRender());
 
-    // Спрятать GUI на мобильных (по желанию)
-    if (window.innerWidth < 768) gui.close();
+      // Скрыть GUI по умолчанию на маленьких экранах
+      if (window.innerWidth < 768) gui.close();
 
-    // === Debug доступ в консоли ===
-    const debugName = `threeBlock_${options.containerId}`;
-    window[debugName] = {
+      // === Debug / API доступ из консоли ===
+      const debugName = `threeBlock_${options.containerId}`;
+      const safeName = toSafeName(options.containerId);
+
+      const api = {
         scene,
         camera,
         renderer,
@@ -390,20 +404,53 @@ function createThreeBlock(options) {
         anotherLight,
         gui,
         options,
+        mesh: null,
+        // Удобная функция для обновления параметров света (Object.assign-подобно)
+        setLight(name, settings = {}) {
+          const light = api[name];
+          if (!light) return;
+          // позиция отдельно
+          if (settings.position) {
+            const p = settings.position;
+            if ('x' in p) light.position.x = p.x;
+            if ('y' in p) light.position.y = p.y;
+            if ('z' in p) light.position.z = p.z;
+          }
+          if ('intensity' in settings) light.intensity = settings.intensity;
+          if ('color' in settings) {
+            try { light.color.set(settings.color); } catch(e) {}
+          }
+          requestRender();
+        },
+        // Вывести все текущие настройки света в консоль (удобно для копирования)
+        printLightSettings() {
+          const serializeLight = L => ({
+            color: '#' + L.color.getHexString(),
+            intensity: L.intensity,
+            position: { x: L.position.x, y: L.position.y, z: L.position.z }
+          });
+          console.log('Ambient:', { color: '#' + ambientLight.color.getHexString(), intensity: ambientLight.intensity });
+          console.log('Directional 1:', serializeLight(directionalLight));
+          console.log('Directional 2:', serializeLight(anotherLight));
+        },
         render: () => renderer.render(scene, camera)
-    };
+      };
 
-    console.log(`GUI и свет доступны в window.${debugName}`);
+      // записываем в window под двумя именами:
+      window[debugName] = api;
+      window[safeName] = api;
 
+      // Одно минимальное сообщение — остальное скрыто
+      console.log(`three block API: window.${safeName} (or window['${debugName}']) — вызывай .printLightSettings() или .setLight(...)`);
 
-    // === Модель ===
-    let mesh = null;
+      // === Модель ===
+      let mesh = null;
 
-    function fitModelToCamera(mesh, camera, offset = 1.6) {
-        const box = new THREE.Box3().setFromObject(mesh);
+      function fitModelToCamera(obj, camera, offset = 1.6) {
+        const box = new THREE.Box3().setFromObject(obj);
         const size = box.getSize(new THREE.Vector3());
         const center = box.getCenter(new THREE.Vector3());
-        mesh.position.sub(center);
+        obj.position.sub(center);
 
         const aspect = width / height;
         const fov = camera.fov * (Math.PI / 180);
@@ -416,40 +463,80 @@ function createThreeBlock(options) {
         camera.lookAt(0, 0, 0);
 
         directionalLight.position.z = cameraDistance / 2;
-    }
+      }
 
-    if (options.modelUrl) {
-        const loader = new THREE.GLTFLoader();
-        loader.load(
+      if (options.modelUrl) {
+        try {
+          const loader = new THREE.GLTFLoader();
+          loader.load(
             options.modelUrl,
             gltf => {
-                mesh = gltf.scene;
-                if (options.modelScale) mesh.scale.setScalar(options.modelScale);
-                scene.add(mesh);
-                fitModelToCamera(mesh, camera);
-                window[debugName].mesh = mesh;
+              mesh = gltf.scene;
+              if (options.modelScale) mesh.scale.setScalar(options.modelScale);
+              scene.add(mesh);
+              fitModelToCamera(mesh, camera);
+              api.mesh = mesh;
+              requestRender();
             },
             undefined,
-            err => console.error('Ошибка загрузки модели:', err)
-        );
-    }
+            err => {
+              console.error('Ошибка загрузки модели:', err);
+            }
+          );
+        } catch (e) {
+          console.error('GLTFLoader не доступен:', e);
+        }
+      }
 
-    function animate() {
+      // === Анимация / рендер ===
+      let needsRender = true;
+      function requestRender() { needsRender = true; }
+
+      function animate() {
         requestAnimationFrame(animate);
-        if (mesh) mesh.rotation.y += options.rotationSpeed ?? 0.01;
-        renderer.render(scene, camera);
-    }
-    animate();
+        if (mesh && (options.rotationSpeed ?? 0.01)) {
+          mesh.rotation.y += options.rotationSpeed ?? 0.01;
+          requestRender();
+        }
+        if (needsRender) {
+          renderer.render(scene, camera);
+          needsRender = false;
+        }
+      }
+      animate();
 
-    window.addEventListener('resize', () => {
+      // === Resize ===
+      function onResize() {
         const rect = container.getBoundingClientRect();
-        const w = rect.width * ((options.sizePercent?.width ?? 100) / 100);
-        const h = rect.height * ((options.sizePercent?.height ?? 100) / 100);
+        const w = Math.max(1, rect.width * ((options.sizePercent?.width ?? 100) / 100));
+        const h = Math.max(1, rect.height * ((options.sizePercent?.height ?? 100) / 100));
         renderer.setSize(w, h);
         camera.aspect = w / h;
         camera.updateProjectionMatrix();
+        requestRender();
+      }
+      window.addEventListener('resize', onResize);
+
+      // Возвращаем API на случай, если захотим сохранить/использовать локально
+      return api;
+    }
+
+    // === Примеры вызова (твои ссылки на .glb) ===
+    createThreeBlock({
+      containerId: 'three-container-1',
+      rotationSpeed: 0.01,
+      modelUrl: 'https://cdn.jsdelivr.net/gh/thehead-repo/adelt-site@refs/heads/main/aw.glb',
+      modelScale: 1.15
     });
-}
+
+    createThreeBlock({
+      containerId: 'three-container-2',
+      rotationSpeed: 0.01,
+      modelUrl: 'https://cdn.jsdelivr.net/gh/thehead-repo/adelt-site@refs/heads/main/cs.glb',
+      modelScale: 1.3
+    });
+
+  })();
 
 
 
@@ -796,6 +883,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
 
 
 
