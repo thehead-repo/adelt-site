@@ -355,6 +355,23 @@ function createThreeBlock(options) {
     anotherLight.position.set(0, 10, 0); 
     scene.add(anotherLight);
 
+    // === Вывод объектов в консоль ===
+    // Делаем объекты доступными через window для отладки в консоли
+    const debugName = `threeBlock_${options.containerId}`;
+    window[debugName] = {
+        scene,
+        camera,
+        renderer,
+        ambientLight,
+        directionalLight,
+        anotherLight,
+        options,
+        // Также можно добавить функцию рендера, если захотите вручную обновлять сцену
+        render: () => renderer.render(scene, camera) 
+    };
+    console.log(`Объекты сцены для контейнера #${options.containerId} доступны в window.${debugName}`);
+    console.log(`Пример использования: window.${debugName}.directionalLight.intensity = 0.5; window.${debugName}.render();`);
+
 
     // === Модель ===
     let mesh = null;
@@ -389,6 +406,8 @@ function createThreeBlock(options) {
                 if (options.modelScale) mesh.scale.setScalar(options.modelScale);
                 scene.add(mesh);
                 fitModelToCamera(mesh, camera);
+                // После загрузки модели можно обновить ссылку на mesh в объекте отладки
+                window[debugName].mesh = mesh;
             },
             undefined,
             err => console.error('Ошибка загрузки модели:', err)
@@ -428,6 +447,7 @@ createThreeBlock({
     modelUrl: 'https://cdn.jsdelivr.net/gh/thehead-repo/adelt-site@refs/heads/main/cs.glb',
     modelScale: 1.3,
 });
+
 
 
     // ========================================================================================================
@@ -772,6 +792,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
 
 
 
