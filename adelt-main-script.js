@@ -444,14 +444,14 @@ function createThreeBlock(options) {
 // === Примеры вызова ===
 createThreeBlock({
     containerId: 'three-container-1',
-    rotationSpeed: 0.005,
+    rotationSpeed: 0.0075,
     modelUrl: 'https://cdn.jsdelivr.net/gh/thehead-repo/adelt-site@refs/heads/main/aw.glb',
     modelScale: 1.15,
 });
 
 createThreeBlock({
     containerId: 'three-container-2',
-    rotationSpeed: 0.005,
+    rotationSpeed: 0.0075,
     modelUrl: 'https://cdn.jsdelivr.net/gh/thehead-repo/adelt-site@refs/heads/main/cs.glb',
     modelScale: 1.3,
 });
@@ -944,4 +944,5 @@ console.log('Wave 5: Checking IS_MOBILE status...');
     }
     console.log('Wave 5: End of initialization block.');
 });
+
 
