@@ -337,15 +337,15 @@ function createThreeBlock(options) {
     container.appendChild(renderer.domElement);
 
     // === Источники света ===
-    const ambientLight = new THREE.AmbientLight(0x404040, 2);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 4);
     scene.add(ambientLight);
 
     const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
-    directionalLight.position.set(3, -7, 5);
+    directionalLight.position.set(2, -2, 1.5);
     scene.add(directionalLight);
 
     const anotherLight = new THREE.DirectionalLight(0xffffff, 1);
-    anotherLight.position.set(-5, 3.5, 2);
+    anotherLight.position.set(-2, 1, 0);
     scene.add(anotherLight);
 
     // === Лайв-лог в консоль ===
@@ -943,6 +943,7 @@ console.log('Wave 5: Checking IS_MOBILE status...');
     }
     console.log('Wave 5: End of initialization block.');
 });
+
 
 
 
